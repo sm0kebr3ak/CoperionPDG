@@ -1,0 +1,27 @@
+Return Only Characters After a selected string (In this Case "X"
+    =RIGHT(C1,LEN(C1)-FIND("x",C1))
+        106f25f x25
+        25
+
+Return Only Characters before a selected string (In this Case "X"
+    =LEFT(A1, FIND("?", A1&"?")-1)
+        106f25f x25
+        106f25f
+
+Returns the Name of the Current Sheet (Tab)
+    =MID(@CELL("filename",A1),FIND("]",@CELL("filename",A1))+1,255)
+      INDIRECT
+
+Return Windows Username
+    =MID(INFO("DIRECTORY"),10,LEN(INFO("DIRECTORY"))-LEN(MID(INFO("DIRECTORY"),FIND("\",INFO("DIRECTORY"),10),1000))-LEN("C:\Users\"))
+      INDIRECT
+
+VLOOKUP to the Left
+  range2 is the source, range1 is the result
+    =VLOOKUP(A1,CHOOSE({1,2},range2,range1),2,0)
+
+
+
+
+The Ugly Formula for Nestle that was used to change the interrupt points
+    =IF(E4<>0,IF(D3<>"",((40+(RIGHT(LEFT(C3, FIND(" SLOT", C3&" SLOT")-1),2)))*10000)+E4-(LEFT(E4,2)*10000),""),"")
