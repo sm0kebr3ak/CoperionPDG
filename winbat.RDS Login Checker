@@ -1,0 +1,11 @@
+@echo off
+rem echo TS01 Users
+rem quser /server:uslxa-p-ts01.schenckprocess.com
+rem echo.
+rem echo TS02 Users
+rem quser /server:uslxa-p-ts02.schenckprocess.com
+rem echo.
+echo RDS1 Users
+quser /server:uslxa-p-rdhost1.cps.local
+echo.
+pause
