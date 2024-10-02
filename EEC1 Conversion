@@ -78,895 +78,895 @@ Public intIOLookup1756N2Row As Integer
 
 
 Sub EEC1()
-Dim currentLine As Integer
+	Dim currentLine As Integer
 
-'THINGS TO CHANGE -
-' SET VARIABLES FOR ALL THE EEC1 HEADER INFORMATION - BECAUSE THE COLUMNS CAN CHANGE - in process
+	'THINGS TO CHANGE -
+	' SET VARIABLES FOR ALL THE EEC1 HEADER INFORMATION - BECAUSE THE COLUMNS CAN CHANGE - in process
 
-intMotorHPColumn = 16
-intMotorDTColumn = 17
-intPilotLightColorColumn = 18
-intDeviceNameColumn = 19
-intSpareColumn = 20
-intTerminalAColumn = 21
-intTerminalBColumn = 22
-intTerminalCColumn = 23
-intTerminalDColumn = 24
-intTerminalEColumn = 25
-intInputRangeColumn = 26
-intOutputRnageColumn = 27
+	intMotorHPColumn = 16
+	intMotorDTColumn = 17
+	intPilotLightColorColumn = 18
+	intDeviceNameColumn = 19
+	intSpareColumn = 20
+	intTerminalAColumn = 21
+	intTerminalBColumn = 22
+	intTerminalCColumn = 23
+	intTerminalDColumn = 24
+	intTerminalEColumn = 25
+	intInputRangeColumn = 26
+	intOutputRnageColumn = 27
 
-intEntryIOModulesOnlyRow = 12
-intEntryIOPointsOnlyRow = 13
-intEntryInputTabRow = 11
-intEntryIOOutputTabRow = 12
-intEntryLoopOutputRow = 13
+	intEntryIOModulesOnlyRow = 12
+	intEntryIOPointsOnlyRow = 13
+	intEntryInputTabRow = 11
+	intEntryIOOutputTabRow = 12
+	intEntryLoopOutputRow = 13
 
-On Error GoTo drawingError
-'+++++++++++++++++++++++++++++++++++++++++++++++++++
-' delete the program generated data in the output tab (strOutputTabName) currently.  Leave the Header row
-' ++++++++++++++++++++++++++++++++++++++++++++++++++
-delete_output ' clear the output file so we are starting empty (except for the heading)
+	On Error GoTo drawingError
+	'+++++++++++++++++++++++++++++++++++++++++++++++++++
+	' delete the program generated data in the output tab (strOutputTabName) currently.  Leave the Header row
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++
+	delete_output ' clear the output file so we are starting empty (except for the heading)
 
-'+++++++++++++++++++++++++++++++++++++++++++++++++++
-' delete the program generated data in the error message tab (Check List).  Leave the Header row
-' ++++++++++++++++++++++++++++++++++++++++++++++++++
-delete_CheckList
+	'+++++++++++++++++++++++++++++++++++++++++++++++++++
+	' delete the program generated data in the error message tab (Check List).  Leave the Header row
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++
+	delete_CheckList
 
-' ++++++++++++++++++++++++++++++++++++++++++++++++++
-' set the starting values
-' ++++++++++++++++++++++++++++++++++++++++++++++++++
-strInputTabName = Sheets("Entry").Cells(intEntryInputTabRow, 2).Value
-strOutputTabName = Sheets("Entry").Cells(intEntryIOOutputTabRow, 2).Value
-intIOLookup1756N2Row = Sheets("PLC Lookup").Cells(2, 1).Value ' Gets the row that the 1756-N2 blank cover definition is on - for looking up IO modules.
-useRightSide = True
-currentLine = 1 ' start on line 2 of the strOutputTabName when loading it with information.
-counterPageDesc = 1 ' even though the array starts at 0, we will start at 1 - because it will be the first page.
-counterIOPointThisModule = 0
-intCheckListCounter = 3 ' start the list at row 2 so there is room for the heading.
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++
+	' set the starting values
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++
+	strInputTabName = Sheets("Entry").Cells(intEntryInputTabRow, 2).Value
+	strOutputTabName = Sheets("Entry").Cells(intEntryIOOutputTabRow, 2).Value
+	intIOLookup1756N2Row = Sheets("PLC Lookup").Cells(2, 1).Value ' Gets the row that the 1756-N2 blank cover definition is on - for looking up IO modules.
+	useRightSide = True
+	currentLine = 1 ' start on line 2 of the strOutputTabName when loading it with information.
+	counterPageDesc = 1 ' even though the array starts at 0, we will start at 1 - because it will be the first page.
+	counterIOPointThisModule = 0
+	intCheckListCounter = 3 ' start the list at row 2 so there is room for the heading.
 
-intLastRow = FindLastRow(strInputTabName) + 1
+	intLastRow = FindLastRow(strInputTabName) + 1
 
-    ' ++++++++++++++++++++++++++++++++++++++++++++++++++
-    ' Determine if the project requires Loop Diagrams.  If yes, then use columns 12 and 13 of the celltags() 2 dimensional array, otherwise, columns 1 and 2
-    '  The values in the celltags array come from the IO Lookup tab - Column 1 in celltags() = column K in "IO Lookup", column 2 = column L, 12 = O, and 13 = N
-    ' ++++++++++++++++++++++++++++++++++++++++++++++++++
-If UCase(Sheets(strInputTabName).Cells(5, 15).Value) = "YES" Then
-    intMacroColumn = 12
-    intVariantColumn = 13
-Else
-    intMacroColumn = 1
-    intVariantColumn = 2
-End If
-pageName = Sheets(strInputTabName).Cells(4, 6).Value - 1 ' start with page indicated for the EPLAN drawing
-pageNamePrefix = Sheets(strInputTabName).Cells(4, 7) ' prefix for the pageName (which needs to be an integer for the rest of the program to work correctly)
-projectName = Sheets(strInputTabName).Cells(2, 10).Value ' Higher Level Function
-panelDesignation = Sheets(strInputTabName).Cells(3, 10).Value ' Mounting Panel
-intIOVoltage = Sheets(strInputTabName).Cells(7, 6).Value
-intCurrentRackMax = Sheets(strInputTabName).Cells(1, 6).Value ' ControlLogix Only - Rack Size for first rack
-intCurrentRackModule = -1 ' ControlLogix Only - set the module # to -1 so that first time through the logic is ignored for added pages where there are gaps
-intCurrentRackCount = 1 ' ControlLogix Only - The current rack is set, value for the rack size is set above, if there are 2 or 3 racks in the panel, then this gets incremented
-strRackNumber = "Blank" ' This is set to "Blank" -1, then the rack # is assigned first time through.  When it changes, then there is a new rack.
-                        ' NOTE THIS WAS CHANGED WITHOUT TESTING BASED ON THE NESTLE JOB 6/16/2021
+		' ++++++++++++++++++++++++++++++++++++++++++++++++++
+		' Determine if the project requires Loop Diagrams.  If yes, then use columns 12 and 13 of the celltags() 2 dimensional array, otherwise, columns 1 and 2
+		'  The values in the celltags array come from the IO Lookup tab - Column 1 in celltags() = column K in "IO Lookup", column 2 = column L, 12 = O, and 13 = N
+		' ++++++++++++++++++++++++++++++++++++++++++++++++++
+	If UCase(Sheets(strInputTabName).Cells(5, 15).Value) = "YES" Then
+		intMacroColumn = 12
+		intVariantColumn = 13
+	Else
+		intMacroColumn = 1
+		intVariantColumn = 2
+	End If
+	pageName = Sheets(strInputTabName).Cells(4, 6).Value - 1 ' start with page indicated for the EPLAN drawing
+	pageNamePrefix = Sheets(strInputTabName).Cells(4, 7) ' prefix for the pageName (which needs to be an integer for the rest of the program to work correctly)
+	projectName = Sheets(strInputTabName).Cells(2, 10).Value ' Higher Level Function
+	panelDesignation = Sheets(strInputTabName).Cells(3, 10).Value ' Mounting Panel
+	intIOVoltage = Sheets(strInputTabName).Cells(7, 6).Value
+	intCurrentRackMax = Sheets(strInputTabName).Cells(1, 6).Value ' ControlLogix Only - Rack Size for first rack
+	intCurrentRackModule = -1 ' ControlLogix Only - set the module # to -1 so that first time through the logic is ignored for added pages where there are gaps
+	intCurrentRackCount = 1 ' ControlLogix Only - The current rack is set, value for the rack size is set above, if there are 2 or 3 racks in the panel, then this gets incremented
+	strRackNumber = "Blank" ' This is set to "Blank" -1, then the rack # is assigned first time through.  When it changes, then there is a new rack.
+							' NOTE THIS WAS CHANGED WITHOUT TESTING BASED ON THE NESTLE JOB 6/16/2021
 
-' print out the job # and the panel designation on the check list sheet.  At the top.
- Sheets("Check List").Cells(1, 2).Value = "Project #:" & projectName & ",   Panel Designation: " & panelDesignation
- 
- If intIOVoltage = 24 Or intIOVoltage = 120 Then
- Else
-    Sheets("Check List").Cells(intCheckListCounter, 2).Value = "ERROR - Invalid Output Power Voltage entry on Tab " & strInputTabName & " Cell F7"
-    intCheckListCounter = intCheckListCounter + 1
-    MsgBox "ERROR - Invalid Output Power Voltage entry on Tab 'Entry', Row B17"
-    GoTo cleanUp
- End If
- 
- setCellTags ' Loads the IO symbol information into an array for better access.
- 
- placeCardAndIO currentLine, pageName ' places the IO card and the IO symbols
- 
- setPageDescriptions ' goes back through and puts the page descriptions at the correct locations - need the max # of drawings to get the text correct
- 
- limitOutput currentLine
- 
- MsgBox "Done with Macro"
-    
-cleanUp:
-    Set microObj = Nothing
-    On Error GoTo 0
-    Exit Sub
-    
-drawingError:
-    Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Main program error message. Current Line = " & currentLine
-    intCheckListCounter = intCheckListCounter + 1
-    Response = MsgBox("Main program error message. Current Line = " & currentLine, vbOKOnly)
-    GoTo cleanUp
-   
-End Sub
+	' print out the job # and the panel designation on the check list sheet.  At the top.
+	 Sheets("Check List").Cells(1, 2).Value = "Project #:" & projectName & ",   Panel Designation: " & panelDesignation
+	 
+	 If intIOVoltage = 24 Or intIOVoltage = 120 Then
+	 Else
+		Sheets("Check List").Cells(intCheckListCounter, 2).Value = "ERROR - Invalid Output Power Voltage entry on Tab " & strInputTabName & " Cell F7"
+		intCheckListCounter = intCheckListCounter + 1
+		MsgBox "ERROR - Invalid Output Power Voltage entry on Tab 'Entry', Row B17"
+		GoTo cleanUp
+	 End If
+	 
+	 setCellTags ' Loads the IO symbol information into an array for better access.
+	 
+	 placeCardAndIO currentLine, pageName ' places the IO card and the IO symbols
+	 
+	 setPageDescriptions ' goes back through and puts the page descriptions at the correct locations - need the max # of drawings to get the text correct
+	 
+	 limitOutput currentLine
+	 
+	 MsgBox "Done with Macro"
+		
+	cleanUp:
+		Set microObj = Nothing
+		On Error GoTo 0
+		Exit Sub
+		
+	drawingError:
+		Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Main program error message. Current Line = " & currentLine
+		intCheckListCounter = intCheckListCounter + 1
+		Response = MsgBox("Main program error message. Current Line = " & currentLine, vbOKOnly)
+		GoTo cleanUp
+	   
+	End Sub
 
-Sub placeCardAndIO(currentLine As Integer, pageName As Integer)
-Dim testIOString As String
-Dim IOSheetRowCounter As Integer
-Dim cardChoice As Integer
-Dim doubleSidedModule As Integer
-Dim needNewPage As Integer
-Dim intStartIOSymbolRow As Integer
-Dim intEndIOSymbolRow As Integer
+	Sub placeCardAndIO(currentLine As Integer, pageName As Integer)
+	Dim testIOString As String
+	Dim IOSheetRowCounter As Integer
+	Dim cardChoice As Integer
+	Dim doubleSidedModule As Integer
+	Dim needNewPage As Integer
+	Dim intStartIOSymbolRow As Integer
+	Dim intEndIOSymbolRow As Integer
 
-doubleSidedModule = 0 ' set the # of Ladders taken up by IO module to 0 which = 1 ladder.  Value of 1 = 2 ladders which is a full page.  I know..., why not 1 and 2 instead of 0 and 1?
-needNewPage = 0
-Dim strPilotLight As String
-Dim intPilotLightRowCounter As Integer
+	doubleSidedModule = 0 ' set the # of Ladders taken up by IO module to 0 which = 1 ladder.  Value of 1 = 2 ladders which is a full page.  I know..., why not 1 and 2 instead of 0 and 1?
+	needNewPage = 0
+	Dim strPilotLight As String
+	Dim intPilotLightRowCounter As Integer
 
-On Error GoTo placeCardError
-' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-' Look at the Entry page to see which tab needs to be converted
-' Set the input sheet to be convered as the active tab
-' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Sheets(strInputTabName).Select
-Range("J6").Select ' set the cursor on the counter so that it is viewable each time.
+	On Error GoTo placeCardError
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	' Look at the Entry page to see which tab needs to be converted
+	' Set the input sheet to be convered as the active tab
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	Sheets(strInputTabName).Select
+	Range("J6").Select ' set the cursor on the counter so that it is viewable each time.
 
-For IOSheetRowCounter = 12 To intLastRow
-'Show which row we are on - on the IO spreadsheet tab so user can see.
-    Cells(6, 10) = IOSheetRowCounter
+	For IOSheetRowCounter = 12 To intLastRow
+	'Show which row we are on - on the IO spreadsheet tab so user can see.
+		Cells(6, 10) = IOSheetRowCounter
 
-    If Cells(IOSheetRowCounter, 8) = "END" Or Cells(IOSheetRowCounter, 10) = "END" Then Exit For
+		If Cells(IOSheetRowCounter, 8) = "END" Or Cells(IOSheetRowCounter, 10) = "END" Then Exit For
 
-    If Cells(IOSheetRowCounter, 8) <> IsBlank Then
-'if the cell indicates an IO module or comm or Power (point IO mostly) or weight module then
-        If InStr(1, Cells(IOSheetRowCounter, 8), "Input") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "Output") _
-        Or InStr(1, Cells(IOSheetRowCounter, 8), "Comm") Or InStr(1, Cells(IOSheetRowCounter, 8), "Power") _
-        Or InStr(1, Cells(IOSheetRowCounter, 8), "Weight") Or InStr(1, Cells(IOSheetRowCounter, 8), "PLC") _
-        Or InStr(1, Cells(IOSheetRowCounter, 8), "Blank") Then
-' IDENTIFY IO MODULE AND PUT IT ON SPREADSHEET
-            cardChoice = GetCard(IOSheetRowCounter, currentLine, pageName, needNewPage)
-            ' ++++++++++++++++++++++++++++++++++++++++++++++++++++
-            ' set the starting and ending values for the lookup of the IO symbols within the cellTags array
-            ' ++++++++++++++++++++++++++++++++++++++++++++++++++++
-            Select Case Sheets("PLC Lookup").Cells(cardChoice, 4).Value
-            Case "AI", "IW"
-                intStartIOSymbolRow = intAISymbolStartRow
-                intEndIOSymbolRow = intAISymbolEndRow
-            Case "AO", "QW"
-                intStartIOSymbolRow = intAOSymbolStartRow
-                intEndIOSymbolRow = intAOSymbolEndRow
-            Case "I"
-                intStartIOSymbolRow = intDISymbolStartRow
-                intEndIOSymbolRow = intDISymbolEndRow
-            Case "O"
-                intStartIOSymbolRow = intDOSymbolStartRow
-                intEndIOSymbolRow = intDOSymbolEndRow
-            Case "RTD"
-                intStartIOSymbolRow = intRTDSymbolStartRow
-                intEndIOSymbolRow = intRTDSymbolEndRow
-            End Select
-' IDENTIFY THE IO SYMBOL AND PUT IT ON THE SPREADSHEET
-' look at the start of the IO address - format depends on the Manufacturer
-        ElseIf (Cells(4, 10) = "Allen Bradley" And (InStr(1, Cells(IOSheetRowCounter, 8), "I:") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "O:") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "RTD:") > 0)) Or _
-        (Cells(4, 10) = "Siemens" And (InStr(1, Cells(IOSheetRowCounter, 8), "I") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "O") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "Q") > 0)) Or _
-        (Cells(4, 10) = "Modicon" And (InStr(1, Cells(IOSheetRowCounter, 8), "I") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "O") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "Q") > 0)) Then ' if this is a IO point
-' IDENTIFY THE IO POINTS AND PUT ON SPREADSHEET
-            Sheets(strOutputTabName).Cells(currentLine, 10).Value = "Multi-line"
-            ' these line put a gap between the first set of IO symbols and the rest
-            counterIOPointThisModule = counterIOPointThisModule + 1
-            If countStepAfterPoint = counterIOPointThisModule - 1 Then
-                counterYPoint = counterYPoint - stepSize
-            End If
-' NOW TO DETERMINE THE IO SYMBOL, ETC
-             testIOString = UCase(Cells(IOSheetRowCounter, 10).Value) 'Move the cell value to the testIO string.
-             If testIOString = IsBlank Then ' if this is blank, then it is a spare point
-                If InStr(1, Cells(IOSheetRowCounter, 8), "AI:") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogInputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogInputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG INPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "AO:") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogOutputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogOutputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG OUTPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "I:") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareInputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareInputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE INPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "O:") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareOutputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareOutputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE OUTPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "IW") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogInputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogInputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG INPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "QW") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogOutputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogOutputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG OUTPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "I") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareInputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareInputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE INPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "Q") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareOutputCounter, intMacroColumn) ' macro location
-                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareOutputCounter, intVariantColumn) ' variant
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE OUTPUT"
-                ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "RTD:") > 0 Then
-                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareRTDCounter, intMacroColumn) ' macro location
-                    If Sheets("PLC Lookup").Cells(cardChoice, 3).Value = -1 Then ' -1 indicates a module w/ IO on both sides.  -1 indicates we start with the right side
-                        If doubleSidedModule = 1 Then  ' determine if the IO point is on the left (1) or right (0) side of the module
-                            Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareRTDCounter, intVariantColumn) ' variant
-                        Else
-                            Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareRTDCounter + 1, intVariantColumn) ' variant
-                        End If
-                    End If
-                    Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE RTD"
-                End If
-                If useRightSide = True Then
-                    Sheets(strOutputTabName).Cells(currentLine, 15).Value = 2
-                Else
-                    Sheets(strOutputTabName).Cells(currentLine, 15).Value = 1
-                End If
-             Else
-    'If there are any digits at the end of the string, remove them (e.g. ZSA2 becomes ZSA)
-                While IsNumeric(Mid(testIOString, Len(testIOString), 1))
-                    testIOString = Mid(testIOString, 1, Len(testIOString) - 1)
-                Wend
-                'Scan through cell tags
+		If Cells(IOSheetRowCounter, 8) <> IsBlank Then
+	'if the cell indicates an IO module or comm or Power (point IO mostly) or weight module then
+			If InStr(1, Cells(IOSheetRowCounter, 8), "Input") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "Output") _
+			Or InStr(1, Cells(IOSheetRowCounter, 8), "Comm") Or InStr(1, Cells(IOSheetRowCounter, 8), "Power") _
+			Or InStr(1, Cells(IOSheetRowCounter, 8), "Weight") Or InStr(1, Cells(IOSheetRowCounter, 8), "PLC") _
+			Or InStr(1, Cells(IOSheetRowCounter, 8), "Blank") Then
+	' IDENTIFY IO MODULE AND PUT IT ON SPREADSHEET
+				cardChoice = GetCard(IOSheetRowCounter, currentLine, pageName, needNewPage)
+				' ++++++++++++++++++++++++++++++++++++++++++++++++++++
+				' set the starting and ending values for the lookup of the IO symbols within the cellTags array
+				' ++++++++++++++++++++++++++++++++++++++++++++++++++++
+				Select Case Sheets("PLC Lookup").Cells(cardChoice, 4).Value
+				Case "AI", "IW"
+					intStartIOSymbolRow = intAISymbolStartRow
+					intEndIOSymbolRow = intAISymbolEndRow
+				Case "AO", "QW"
+					intStartIOSymbolRow = intAOSymbolStartRow
+					intEndIOSymbolRow = intAOSymbolEndRow
+				Case "I"
+					intStartIOSymbolRow = intDISymbolStartRow
+					intEndIOSymbolRow = intDISymbolEndRow
+				Case "O"
+					intStartIOSymbolRow = intDOSymbolStartRow
+					intEndIOSymbolRow = intDOSymbolEndRow
+				Case "RTD"
+					intStartIOSymbolRow = intRTDSymbolStartRow
+					intEndIOSymbolRow = intRTDSymbolEndRow
+				End Select
+	' IDENTIFY THE IO SYMBOL AND PUT IT ON THE SPREADSHEET
+	' look at the start of the IO address - format depends on the Manufacturer
+			ElseIf (Cells(4, 10) = "Allen Bradley" And (InStr(1, Cells(IOSheetRowCounter, 8), "I:") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "O:") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "RTD:") > 0)) Or _
+			(Cells(4, 10) = "Siemens" And (InStr(1, Cells(IOSheetRowCounter, 8), "I") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "O") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "Q") > 0)) Or _
+			(Cells(4, 10) = "Modicon" And (InStr(1, Cells(IOSheetRowCounter, 8), "I") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "O") > 0 Or InStr(1, Cells(IOSheetRowCounter, 8), "Q") > 0)) Then ' if this is a IO point
+	' IDENTIFY THE IO POINTS AND PUT ON SPREADSHEET
+				Sheets(strOutputTabName).Cells(currentLine, 10).Value = "Multi-line"
+				' these line put a gap between the first set of IO symbols and the rest
+				counterIOPointThisModule = counterIOPointThisModule + 1
+				If countStepAfterPoint = counterIOPointThisModule - 1 Then
+					counterYPoint = counterYPoint - stepSize
+				End If
+	' NOW TO DETERMINE THE IO SYMBOL, ETC
+				 testIOString = UCase(Cells(IOSheetRowCounter, 10).Value) 'Move the cell value to the testIO string.
+				 If testIOString = IsBlank Then ' if this is blank, then it is a spare point
+					If InStr(1, Cells(IOSheetRowCounter, 8), "AI:") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogInputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogInputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG INPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "AO:") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogOutputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogOutputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG OUTPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "I:") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareInputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareInputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE INPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "O:") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareOutputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareOutputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE OUTPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "IW") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogInputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogInputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG INPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "QW") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareAnalogOutputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareAnalogOutputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE ANALOG OUTPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "I") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareInputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareInputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE INPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "Q") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareOutputCounter, intMacroColumn) ' macro location
+						Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareOutputCounter, intVariantColumn) ' variant
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE OUTPUT"
+					ElseIf InStr(1, Cells(IOSheetRowCounter, 8), "RTD:") > 0 Then
+						Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(intSpareRTDCounter, intMacroColumn) ' macro location
+						If Sheets("PLC Lookup").Cells(cardChoice, 3).Value = -1 Then ' -1 indicates a module w/ IO on both sides.  -1 indicates we start with the right side
+							If doubleSidedModule = 1 Then  ' determine if the IO point is on the left (1) or right (0) side of the module
+								Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareRTDCounter, intVariantColumn) ' variant
+							Else
+								Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(intSpareRTDCounter + 1, intVariantColumn) ' variant
+							End If
+						End If
+						Sheets(strOutputTabName).Cells(currentLine, 45).Value = "SPARE RTD"
+					End If
+					If useRightSide = True Then
+						Sheets(strOutputTabName).Cells(currentLine, 15).Value = 2
+					Else
+						Sheets(strOutputTabName).Cells(currentLine, 15).Value = 1
+					End If
+				 Else
+		'If there are any digits at the end of the string, remove them (e.g. ZSA2 becomes ZSA)
+					While IsNumeric(Mid(testIOString, Len(testIOString), 1))
+						testIOString = Mid(testIOString, 1, Len(testIOString) - 1)
+					Wend
+					'Scan through cell tags
 
-                'Use the tag name in Excel to determine what to draw
-                For cellTagCount = intStartIOSymbolRow To intEndIOSymbolRow
-                    If InStr(1, testIOString, cellTags(cellTagCount, 0)) > 0 Then 'if one of the strings is found in the cell
-                        If Right(testIOString, Len(cellTags(cellTagCount, 0))) = cellTags(cellTagCount, 0) Then 'confirm that the found string is the right-most part of the text (excluding a digit that was removed from the end, if any)
-                        
-                            Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' OUTPUT - macro location
-                            If useRightSide = True Then ' note ladder to be used
-                                Sheets(strOutputTabName).Cells(currentLine, 15).Value = 2 ' OUTPUT - Ladder
-                            Else
-                                Sheets(strOutputTabName).Cells(currentLine, 15).Value = 1 ' OUTPUT - Ladder
-                            End If
-    
-                            ' Contacts - Terminals A through E
-                            If Cells(IOSheetRowCounter, intTerminalAColumn) = IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 37).Value = cellTags(cellTagCount, 3) ' OUTPUT - terminal A
-                            Else
-                                Sheets(strOutputTabName).Cells(currentLine, 37).Value = Cells(IOSheetRowCounter, intTerminalAColumn).Value ' OUTPUT - terminal A
-                            End If
-                            If Cells(IOSheetRowCounter, intTerminalBColumn).Value = IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 38).Value = cellTags(cellTagCount, 4) ' OUTPUT - terminal B
-                            Else
-                                Sheets(strOutputTabName).Cells(currentLine, 38).Value = Cells(IOSheetRowCounter, intTerminalBColumn).Value ' OUTPUT - terminal B
-                            End If
-                            If Cells(IOSheetRowCounter, intTerminalCColumn).Value = IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 39).Value = cellTags(cellTagCount, 5) ' OUTPUT - terminal C
-                            Else
-                                Sheets(strOutputTabName).Cells(currentLine, 39).Value = Cells(IOSheetRowCounter, intTerminalCColumn).Value ' OUTPUT - terminal C
-                            End If
-                            If Cells(IOSheetRowCounter, intTerminalDColumn).Value = IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 40).Value = cellTags(cellTagCount, 6) ' OUTPUT - terminal D
-                            Else
-                                Sheets(strOutputTabName).Cells(currentLine, 40).Value = Cells(IOSheetRowCounter, intTerminalDColumn).Value ' OUTPUT - terminal D
-                            End If
-                            If Cells(IOSheetRowCounter, intTerminalEColumn).Value = IsBlank Then
-                                If Cells(IOSheetRowCounter, intPilotLightColorColumn).Value = IsBlank Then ' indicates that there is no pilot light and therefore no other possibilities for what should go in this cell
-                                    Sheets(strOutputTabName).Cells(currentLine, 41).Value = cellTags(cellTagCount, 7) ' OUTPUT - terminal E
-                                Else
-                                ' &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-                                ' If there is text in Column 18, it indicates that there should be a pilot light set down.
-                                ' The pilot light assembly part number is put into the Terminal E column.
-                                ' &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-                                    If Sheets("PLC Lookup").Cells(cardChoice, 4) <> "O" Then
-                                        Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Pilot Light Indicated at IO address: " & Cells(IOSheetRowCounter, 8).Value & " but NOT placed because it isn't an Output"
-                                        intCheckListCounter = intCheckListCounter + 1
-                                        MsgBox "Pilot Light Indicated at IO address: " & Cells(IOSheetRowCounter, 8).Value & " but NOT placed because it isn't an Output.  Input pilot lights are a future feature."
-                                    Else
-                                        strPilotLight = UCase(Cells(IOSheetRowCounter, intPilotLightColorColumn).Value) & " " & intIOVoltage & "V"
-                                        intPilotLightRowCounter = 2
-                                        Do Until Sheets("Pilot Light").Cells(intPilotLightRowCounter, 1).Value = IsBlank
-                                            If strPilotLight = Sheets("Pilot Light").Cells(intPilotLightRowCounter, 1).Value Then
-                                                Sheets(strOutputTabName).Cells(currentLine, 41).Value = Sheets("Pilot Light").Cells(intPilotLightRowCounter, 2).Value  ' terminal E
-                                                ' Uses the Input Range to fill in the Engraving Text field.  Assume the 2nd and 3rd description columns (Sub-System and Device Desc) are the desired text
-                                                Sheets(strOutputTabName).Cells(currentLine, 42).Value = ""
-                                                If Cells(IOSheetRowCounter, 12) <> IsBlank Then
-                                                   Sheets(strOutputTabName).Cells(currentLine, 42).Value = Sheets(strOutputTabName).Cells(currentLine, 42).Value & UCase(Cells(IOSheetRowCounter, 12))
-                                                End If
-                                                If Cells(IOSheetRowCounter, 13) <> IsBlank Then
-                                                    Sheets(strOutputTabName).Cells(currentLine, 42).Value = " " & Sheets(strOutputTabName).Cells(currentLine, 42).Value & "¶" & UCase(Cells(IOSheetRowCounter, 13))
-                                                End If
-                                                ' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                                                ' set an alert to tell user the assumption on the pilot light tag
-                                                ' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                                                Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Tag for Pilot Light at IO address: " & Cells(IOSheetRowCounter, 8).Value & " set to " & Sheets(strOutputTabName).Cells(currentLine, 42).Value
-                                                intCheckListCounter = intCheckListCounter + 1
-    '                                            MsgBox "Tag for Pilot Light at IO address: " & Cells(IOSheetRowCounter, 8).Value & " set to " & Sheets(strOutputTabName).Cells(currentLine, 42).Value
-                                                Exit Do
-                                            End If
-                                            intPilotLightRowCounter = intPilotLightRowCounter + 1
-                                        Loop
-                                        If Sheets(strOutputTabName).Cells(currentLine, 41).Value = IsBlank Then
-                                            Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Pilot Light Assembly not selected at IO address: " & Cells(IOSheetRowCounter, 8).Value
-                                            intCheckListCounter = intCheckListCounter + 1
-                                            MsgBox "Pilot Light Assembly not selected"
-                                        End If
-                                    End If
-                                End If
-                            Else
-                                Sheets(strOutputTabName).Cells(currentLine, 41).Value = Cells(IOSheetRowCounter, intTerminalEColumn).Value ' OUTPUT - terminal E
-                            End If
-                            
-                        
-                        ' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                        ' Output any warning message from the IO Lookup table on this IO point
-                        ' This works if there isn't an offset used - see the Variant section below.
-                        ' If one of the variants has an offset then an individual message will
-                        ' need to be added - like the motor coil and auxiliary sections
-                        ' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            If cellTags(cellTagCount, 11) = IsBlank Then
-                            Else
-                                Sheets("Check List").Cells(intCheckListCounter, 2).Value = cellTags(cellTagCount, 11) & " at line " & currentLine & " IO address: " & Cells(IOSheetRowCounter, 8).Value
-                                intCheckListCounter = intCheckListCounter + 1
-                            End If
+					'Use the tag name in Excel to determine what to draw
+					For cellTagCount = intStartIOSymbolRow To intEndIOSymbolRow
+						If InStr(1, testIOString, cellTags(cellTagCount, 0)) > 0 Then 'if one of the strings is found in the cell
+							If Right(testIOString, Len(cellTags(cellTagCount, 0))) = cellTags(cellTagCount, 0) Then 'confirm that the found string is the right-most part of the text (excluding a digit that was removed from the end, if any)
+							
+								Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' OUTPUT - macro location
+								If useRightSide = True Then ' note ladder to be used
+									Sheets(strOutputTabName).Cells(currentLine, 15).Value = 2 ' OUTPUT - Ladder
+								Else
+									Sheets(strOutputTabName).Cells(currentLine, 15).Value = 1 ' OUTPUT - Ladder
+								End If
+		
+								' Contacts - Terminals A through E
+								If Cells(IOSheetRowCounter, intTerminalAColumn) = IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 37).Value = cellTags(cellTagCount, 3) ' OUTPUT - terminal A
+								Else
+									Sheets(strOutputTabName).Cells(currentLine, 37).Value = Cells(IOSheetRowCounter, intTerminalAColumn).Value ' OUTPUT - terminal A
+								End If
+								If Cells(IOSheetRowCounter, intTerminalBColumn).Value = IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 38).Value = cellTags(cellTagCount, 4) ' OUTPUT - terminal B
+								Else
+									Sheets(strOutputTabName).Cells(currentLine, 38).Value = Cells(IOSheetRowCounter, intTerminalBColumn).Value ' OUTPUT - terminal B
+								End If
+								If Cells(IOSheetRowCounter, intTerminalCColumn).Value = IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 39).Value = cellTags(cellTagCount, 5) ' OUTPUT - terminal C
+								Else
+									Sheets(strOutputTabName).Cells(currentLine, 39).Value = Cells(IOSheetRowCounter, intTerminalCColumn).Value ' OUTPUT - terminal C
+								End If
+								If Cells(IOSheetRowCounter, intTerminalDColumn).Value = IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 40).Value = cellTags(cellTagCount, 6) ' OUTPUT - terminal D
+								Else
+									Sheets(strOutputTabName).Cells(currentLine, 40).Value = Cells(IOSheetRowCounter, intTerminalDColumn).Value ' OUTPUT - terminal D
+								End If
+								If Cells(IOSheetRowCounter, intTerminalEColumn).Value = IsBlank Then
+									If Cells(IOSheetRowCounter, intPilotLightColorColumn).Value = IsBlank Then ' indicates that there is no pilot light and therefore no other possibilities for what should go in this cell
+										Sheets(strOutputTabName).Cells(currentLine, 41).Value = cellTags(cellTagCount, 7) ' OUTPUT - terminal E
+									Else
+									' &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+									' If there is text in Column 18, it indicates that there should be a pilot light set down.
+									' The pilot light assembly part number is put into the Terminal E column.
+									' &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+										If Sheets("PLC Lookup").Cells(cardChoice, 4) <> "O" Then
+											Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Pilot Light Indicated at IO address: " & Cells(IOSheetRowCounter, 8).Value & " but NOT placed because it isn't an Output"
+											intCheckListCounter = intCheckListCounter + 1
+											MsgBox "Pilot Light Indicated at IO address: " & Cells(IOSheetRowCounter, 8).Value & " but NOT placed because it isn't an Output.  Input pilot lights are a future feature."
+										Else
+											strPilotLight = UCase(Cells(IOSheetRowCounter, intPilotLightColorColumn).Value) & " " & intIOVoltage & "V"
+											intPilotLightRowCounter = 2
+											Do Until Sheets("Pilot Light").Cells(intPilotLightRowCounter, 1).Value = IsBlank
+												If strPilotLight = Sheets("Pilot Light").Cells(intPilotLightRowCounter, 1).Value Then
+													Sheets(strOutputTabName).Cells(currentLine, 41).Value = Sheets("Pilot Light").Cells(intPilotLightRowCounter, 2).Value  ' terminal E
+													' Uses the Input Range to fill in the Engraving Text field.  Assume the 2nd and 3rd description columns (Sub-System and Device Desc) are the desired text
+													Sheets(strOutputTabName).Cells(currentLine, 42).Value = ""
+													If Cells(IOSheetRowCounter, 12) <> IsBlank Then
+													   Sheets(strOutputTabName).Cells(currentLine, 42).Value = Sheets(strOutputTabName).Cells(currentLine, 42).Value & UCase(Cells(IOSheetRowCounter, 12))
+													End If
+													If Cells(IOSheetRowCounter, 13) <> IsBlank Then
+														Sheets(strOutputTabName).Cells(currentLine, 42).Value = " " & Sheets(strOutputTabName).Cells(currentLine, 42).Value & "¶" & UCase(Cells(IOSheetRowCounter, 13))
+													End If
+													' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+													' set an alert to tell user the assumption on the pilot light tag
+													' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+													Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Tag for Pilot Light at IO address: " & Cells(IOSheetRowCounter, 8).Value & " set to " & Sheets(strOutputTabName).Cells(currentLine, 42).Value
+													intCheckListCounter = intCheckListCounter + 1
+		'                                            MsgBox "Tag for Pilot Light at IO address: " & Cells(IOSheetRowCounter, 8).Value & " set to " & Sheets(strOutputTabName).Cells(currentLine, 42).Value
+													Exit Do
+												End If
+												intPilotLightRowCounter = intPilotLightRowCounter + 1
+											Loop
+											If Sheets(strOutputTabName).Cells(currentLine, 41).Value = IsBlank Then
+												Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Pilot Light Assembly not selected at IO address: " & Cells(IOSheetRowCounter, 8).Value
+												intCheckListCounter = intCheckListCounter + 1
+												MsgBox "Pilot Light Assembly not selected"
+											End If
+										End If
+									End If
+								Else
+									Sheets(strOutputTabName).Cells(currentLine, 41).Value = Cells(IOSheetRowCounter, intTerminalEColumn).Value ' OUTPUT - terminal E
+								End If
+								
+							
+							' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+							' Output any warning message from the IO Lookup table on this IO point
+							' This works if there isn't an offset used - see the Variant section below.
+							' If one of the variants has an offset then an individual message will
+							' need to be added - like the motor coil and auxiliary sections
+							' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								If cellTags(cellTagCount, 11) = IsBlank Then
+								Else
+									Sheets("Check List").Cells(intCheckListCounter, 2).Value = cellTags(cellTagCount, 11) & " at line " & currentLine & " IO address: " & Cells(IOSheetRowCounter, 8).Value
+									intCheckListCounter = intCheckListCounter + 1
+								End If
 
-                        ' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                        ' Variant Section -
-                        ' Five different conditions to date (7/13/2017)
-                        '  If the symbol needs to be different if it is on an even IO address versus an odd.
-                        '    This is specific to the analog IO at this point
-                        '  Motor starter coils have several conditions depending on if they are internal or external
-                        '  Motor starter auxiliaries have a couple of similiar conditions.
-                        '  120 VAC vs 24 VDC outputs
-                        ' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            If boolOddEven = True Then ' if we need to take into account odd/even IO symbols, we assume that these are together and the even variant is first
-                                tmpNumber = (counterIOPointThisModule Mod 2) - 1 ' this returns 0 for even, 1 for odd
-                                If tmpNumber = 0 Then  ' determine if this needs to be the odd or even symbol
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
-                                Else
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
-                                End If
-                            ElseIf Sheets("PLC Lookup").Cells(cardChoice, 3).Value = -1 Then ' -1 indicates a module w/ IO on both sides.  -1 indicates we start with the right side
-                                If doubleSidedModule = 1 Then  ' determine if the IO point is on the left (1) or right (0) side of the module
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
-                                Else
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
-                                End If
-                            '  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            '  Motor Starter Coil Variant
-                            '  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            ElseIf Right(cellTags(cellTagCount, 0), 2) = "_M" Or Right(cellTags(cellTagCount, 0), 2) = "MR" Or Right(cellTags(cellTagCount, 0), 2) = "MF" Then ' if this is a motor starter coil, then there are a lot of options...
-                                If Sheets(strInputTabName).Cells(6, 6).Value = 1 Then ' a local motor starter
-                                    If Sheets(strInputTabName).Cells(5, 6).Value = 1 Then ' a local motor starter Uline/Schneider brand
-                                        If Cells(IOSheetRowCounter, intMotorHPColumn).Value > 20 Then ' if the motor horsepower is > 20 HP, use the protector variant
-                                            Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
-                                            Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
-                                        Else
-                                            Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
-                                            Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
-                                        End If
-                                    Else ' assume an overload
-                                        Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 2, intVariantColumn) ' variant
-                                        Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 2, intMacroColumn) ' Macro Location
-                                    End If
-                                ElseIf Sheets(strInputTabName).Cells(6, 6).Value = 2 Then ' a remote motor starter that is in another panel within the project - use Interruption points
-                                    Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Motor Coil Interruption point used at line " & currentLine & " IO address: " & Cells(IOSheetRowCounter, 8).Value
-                                    intCheckListCounter = intCheckListCounter + 1
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 4, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 4, intMacroColumn) ' Macro Location
-                                Else ' a motor starter outside the project - assume a motor coil with an overload, but with dashed lines - DT of ???
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 3, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 3, intMacroColumn) ' Macro Location
-                                End If
-                            '  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            '  Motor Starter Auxiliary Variant
-                            '  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            ElseIf cellTags(cellTagCount, 0) = "MCY" Or cellTags(cellTagCount, 0) = "MCYF" Or cellTags(cellTagCount, 0) = "MCYR" Then ' if this is a motor starter auxiliary
-                                If Sheets(strInputTabName).Cells(6, 6).Value = 1 Then ' a local motor starter auxiliary
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
-                                ElseIf Sheets(strInputTabName).Cells(6, 6).Value = 2 Then ' a remote motor starter that is in another panel within the project - use Interruption points
-                                    Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Motor Auxiliary Interruption point used at line " & currentLine & " IO address: " & Cells(IOSheetRowCounter, 8).Value
-                                    intCheckListCounter = intCheckListCounter + 1
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 2, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 2, intMacroColumn) ' Macro Location
-                                Else ' a motor starter outside the project - use dashed lines - DT of ???
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
-                                End If
-                            '  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            '  24 VDC vs 120 VAC Variant
-                            '  This only matters if the IO symbol is driving the BOM and panel layout
-                            '   For alarm horns, pilot lights (maybe - that isn't entirely worked out yet... 7/13/2017
-                            '    Relays.  We know which need to be taken into account based on setting in IO Lookup table, column L
-                            '  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            ElseIf intIOVoltage = 24 Then  ' 24 vs 120 versions of macros
-                                If cellTags(cellTagCount, 10) = IsBlank Then
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant for 120VAC or 24VDC
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location for 120VAC or 24VDC
-                                Else
-                                ' if this is a device that has a 120 VAC and 24 VDC version, choose the cellTagCount version for 120, add the offset (1) for 24VDC version
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + cellTags(cellTagCount, 10), intVariantColumn) ' variant for 120VAC or 24VDC
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + cellTags(cellTagCount, 10), intMacroColumn) ' Macro Location for 120VAC or 24VDC
-                                End If
-                            Else
-                               Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
-                               Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
-                            End If
-                            ' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            ' for the most part - end of variant section
-                            ' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            
-                            ' On Champion 1100101593, the flame arrestor has a ZSC, but also requires 24 VDC power - since we are using
-                            If cellTags(cellTagCount, 0) = "ZSC" And Sheets(strInputTabName).Cells(IOSheetRowCounter, 13).Value = "Flame Arrestor" Then
-                                    Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(150, intVariantColumn) ' variant
-                                    Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(150, intMacroColumn) ' Macro Location
-                                    Sheets(strOutputTabName).Cells(currentLine, 37).Value = cellTags(150, 3) ' Macro Location' load terminal A with the Output power terminal from Entry tab
-                                    Sheets(strOutputTabName).Cells(currentLine, 38).Value = cellTags(150, 4) ' Macro Location' load terminal B with ... from Entry tab
-                                    Sheets(strOutputTabName).Cells(currentLine, 39).Value = cellTags(150, 5) ' Macro Location' load terminal C with ... from Entry tab
-                                    Sheets(strOutputTabName).Cells(currentLine, 40).Value = cellTags(150, 6) ' Macro Location' load terminal D with ... from Entry tab
-                                    Sheets(strOutputTabName).Cells(currentLine, 41).Value = cellTags(150, 7) ' Macro Location' load terminal E with ... from Entry tab
-                            End If
-                            
-                            
-                            ' fill in the control power terminal # based on the output power listed on the entry sheet
-                            If cellTags(cellTagCount, 0) = "PWR" Or cellTags(cellTagCount, 0) = "CPO" Or cellTags(cellTagCount, 0) = "EE" Then
-                                Sheets(strOutputTabName).Cells(currentLine, 37).Value = Sheets(strInputTabName).Cells(3, 13).Value ' load terminal A with the Output power terminal from Entry tab
-                            End If
-                            
-                            ' fill in the motor Device Tag if it is a motor or MCY
-                            If Right(cellTags(cellTagCount, 0), 2) = "_M" Or Right(cellTags(cellTagCount, 0), 2) = "MR" Or Right(cellTags(cellTagCount, 0), 2) = "MF" _
-                              Or cellTags(cellTagCount, 0) = "MCY" Or cellTags(cellTagCount, 0) = "MCYF" Or cellTags(cellTagCount, 0) = "MCYR" Then
-                                Sheets(strOutputTabName).Cells(currentLine, 64).Value = Cells(IOSheetRowCounter, intMotorDTColumn).Value ' fill in the MotorDT column when necessary
-                                '   The next bit adds the HOT and COMMON wire interuption point DTs so they can be linked to the motor starter control - this could be done here with Terminal E,
-                                '    or it could be done in the Macro like was done for the Loop diagrams.  In either case, use the -C for the common/neutral, and -H for the Input Hot wire.
-                                If Right(cellTags(cellTagCount, 0), 2) = "_M" Or Right(cellTags(cellTagCount, 0), 2) = "MR" Or Right(cellTags(cellTagCount, 0), 2) = "MF" Then
-                                    Sheets(strOutputTabName).Cells(currentLine, 41).Value = Cells(IOSheetRowCounter, 8).Value & "-C" ' fill in Terminal E with the wire # (Output address)-C
-                                End If
-                                If Right(cellTags(cellTagCount, 0), 2) = "_MCY" Or Right(cellTags(cellTagCount, 0), 2) = "MCYR" Or Right(cellTags(cellTagCount, 0), 2) = "MCYF" Then
-                                    Sheets(strOutputTabName).Cells(currentLine, 41).Value = Cells(IOSheetRowCounter, 8).Value & "-H" ' fill in Terminal E with the wire # (Output address)-H
-                                End If
-                            End If
-' AT SOME POINT ADD IN THE INFO FROM THE SPREADSHEET - USE THE COLUMN VARIABLES intInputRangeColumn, intOutputRangeColumn
+							' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+							' Variant Section -
+							' Five different conditions to date (7/13/2017)
+							'  If the symbol needs to be different if it is on an even IO address versus an odd.
+							'    This is specific to the analog IO at this point
+							'  Motor starter coils have several conditions depending on if they are internal or external
+							'  Motor starter auxiliaries have a couple of similiar conditions.
+							'  120 VAC vs 24 VDC outputs
+							' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								If boolOddEven = True Then ' if we need to take into account odd/even IO symbols, we assume that these are together and the even variant is first
+									tmpNumber = (counterIOPointThisModule Mod 2) - 1 ' this returns 0 for even, 1 for odd
+									If tmpNumber = 0 Then  ' determine if this needs to be the odd or even symbol
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
+									Else
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
+									End If
+								ElseIf Sheets("PLC Lookup").Cells(cardChoice, 3).Value = -1 Then ' -1 indicates a module w/ IO on both sides.  -1 indicates we start with the right side
+									If doubleSidedModule = 1 Then  ' determine if the IO point is on the left (1) or right (0) side of the module
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
+									Else
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
+									End If
+								'  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								'  Motor Starter Coil Variant
+								'  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								ElseIf Right(cellTags(cellTagCount, 0), 2) = "_M" Or Right(cellTags(cellTagCount, 0), 2) = "MR" Or Right(cellTags(cellTagCount, 0), 2) = "MF" Then ' if this is a motor starter coil, then there are a lot of options...
+									If Sheets(strInputTabName).Cells(6, 6).Value = 1 Then ' a local motor starter
+										If Sheets(strInputTabName).Cells(5, 6).Value = 1 Then ' a local motor starter Uline/Schneider brand
+											If Cells(IOSheetRowCounter, intMotorHPColumn).Value > 20 Then ' if the motor horsepower is > 20 HP, use the protector variant
+												Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
+												Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
+											Else
+												Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
+												Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
+											End If
+										Else ' assume an overload
+											Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 2, intVariantColumn) ' variant
+											Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 2, intMacroColumn) ' Macro Location
+										End If
+									ElseIf Sheets(strInputTabName).Cells(6, 6).Value = 2 Then ' a remote motor starter that is in another panel within the project - use Interruption points
+										Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Motor Coil Interruption point used at line " & currentLine & " IO address: " & Cells(IOSheetRowCounter, 8).Value
+										intCheckListCounter = intCheckListCounter + 1
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 4, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 4, intMacroColumn) ' Macro Location
+									Else ' a motor starter outside the project - assume a motor coil with an overload, but with dashed lines - DT of ???
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 3, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 3, intMacroColumn) ' Macro Location
+									End If
+								'  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								'  Motor Starter Auxiliary Variant
+								'  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								ElseIf cellTags(cellTagCount, 0) = "MCY" Or cellTags(cellTagCount, 0) = "MCYF" Or cellTags(cellTagCount, 0) = "MCYR" Then ' if this is a motor starter auxiliary
+									If Sheets(strInputTabName).Cells(6, 6).Value = 1 Then ' a local motor starter auxiliary
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
+									ElseIf Sheets(strInputTabName).Cells(6, 6).Value = 2 Then ' a remote motor starter that is in another panel within the project - use Interruption points
+										Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Motor Auxiliary Interruption point used at line " & currentLine & " IO address: " & Cells(IOSheetRowCounter, 8).Value
+										intCheckListCounter = intCheckListCounter + 1
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 2, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 2, intMacroColumn) ' Macro Location
+									Else ' a motor starter outside the project - use dashed lines - DT of ???
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + 1, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + 1, intMacroColumn) ' Macro Location
+									End If
+								'  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								'  24 VDC vs 120 VAC Variant
+								'  This only matters if the IO symbol is driving the BOM and panel layout
+								'   For alarm horns, pilot lights (maybe - that isn't entirely worked out yet... 7/13/2017
+								'    Relays.  We know which need to be taken into account based on setting in IO Lookup table, column L
+								'  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								ElseIf intIOVoltage = 24 Then  ' 24 vs 120 versions of macros
+									If cellTags(cellTagCount, 10) = IsBlank Then
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant for 120VAC or 24VDC
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location for 120VAC or 24VDC
+									Else
+									' if this is a device that has a 120 VAC and 24 VDC version, choose the cellTagCount version for 120, add the offset (1) for 24VDC version
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount + cellTags(cellTagCount, 10), intVariantColumn) ' variant for 120VAC or 24VDC
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount + cellTags(cellTagCount, 10), intMacroColumn) ' Macro Location for 120VAC or 24VDC
+									End If
+								Else
+								   Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(cellTagCount, intVariantColumn) ' variant
+								   Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(cellTagCount, intMacroColumn) ' Macro Location
+								End If
+								' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								' for the most part - end of variant section
+								' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								
+								' On Champion 1100101593, the flame arrestor has a ZSC, but also requires 24 VDC power - since we are using
+								If cellTags(cellTagCount, 0) = "ZSC" And Sheets(strInputTabName).Cells(IOSheetRowCounter, 13).Value = "Flame Arrestor" Then
+										Sheets(strOutputTabName).Cells(currentLine, 11).Value = cellTags(150, intVariantColumn) ' variant
+										Sheets(strOutputTabName).Cells(currentLine, 1).Value = cellTags(150, intMacroColumn) ' Macro Location
+										Sheets(strOutputTabName).Cells(currentLine, 37).Value = cellTags(150, 3) ' Macro Location' load terminal A with the Output power terminal from Entry tab
+										Sheets(strOutputTabName).Cells(currentLine, 38).Value = cellTags(150, 4) ' Macro Location' load terminal B with ... from Entry tab
+										Sheets(strOutputTabName).Cells(currentLine, 39).Value = cellTags(150, 5) ' Macro Location' load terminal C with ... from Entry tab
+										Sheets(strOutputTabName).Cells(currentLine, 40).Value = cellTags(150, 6) ' Macro Location' load terminal D with ... from Entry tab
+										Sheets(strOutputTabName).Cells(currentLine, 41).Value = cellTags(150, 7) ' Macro Location' load terminal E with ... from Entry tab
+								End If
+								
+								
+								' fill in the control power terminal # based on the output power listed on the entry sheet
+								If cellTags(cellTagCount, 0) = "PWR" Or cellTags(cellTagCount, 0) = "CPO" Or cellTags(cellTagCount, 0) = "EE" Then
+									Sheets(strOutputTabName).Cells(currentLine, 37).Value = Sheets(strInputTabName).Cells(3, 13).Value ' load terminal A with the Output power terminal from Entry tab
+								End If
+								
+								' fill in the motor Device Tag if it is a motor or MCY
+								If Right(cellTags(cellTagCount, 0), 2) = "_M" Or Right(cellTags(cellTagCount, 0), 2) = "MR" Or Right(cellTags(cellTagCount, 0), 2) = "MF" _
+								  Or cellTags(cellTagCount, 0) = "MCY" Or cellTags(cellTagCount, 0) = "MCYF" Or cellTags(cellTagCount, 0) = "MCYR" Then
+									Sheets(strOutputTabName).Cells(currentLine, 64).Value = Cells(IOSheetRowCounter, intMotorDTColumn).Value ' fill in the MotorDT column when necessary
+									'   The next bit adds the HOT and COMMON wire interuption point DTs so they can be linked to the motor starter control - this could be done here with Terminal E,
+									'    or it could be done in the Macro like was done for the Loop diagrams.  In either case, use the -C for the common/neutral, and -H for the Input Hot wire.
+									If Right(cellTags(cellTagCount, 0), 2) = "_M" Or Right(cellTags(cellTagCount, 0), 2) = "MR" Or Right(cellTags(cellTagCount, 0), 2) = "MF" Then
+										Sheets(strOutputTabName).Cells(currentLine, 41).Value = Cells(IOSheetRowCounter, 8).Value & "-C" ' fill in Terminal E with the wire # (Output address)-C
+									End If
+									If Right(cellTags(cellTagCount, 0), 2) = "_MCY" Or Right(cellTags(cellTagCount, 0), 2) = "MCYR" Or Right(cellTags(cellTagCount, 0), 2) = "MCYF" Then
+										Sheets(strOutputTabName).Cells(currentLine, 41).Value = Cells(IOSheetRowCounter, 8).Value & "-H" ' fill in Terminal E with the wire # (Output address)-H
+									End If
+								End If
+	' AT SOME POINT ADD IN THE INFO FROM THE SPREADSHEET - USE THE COLUMN VARIABLES intInputRangeColumn, intOutputRangeColumn
 
-                            If Sheets(strOutputTabName).Cells(currentLine, 42).Value = IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 42).Value = UCase(cellTags(cellTagCount, 8)) ' Input Range
-                            End If
-                            Sheets(strOutputTabName).Cells(currentLine, 43).Value = UCase(cellTags(cellTagCount, 9)) ' Output Range
-                            If Cells(IOSheetRowCounter, 9).Value = IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 44).Value = UCase(Cells(IOSheetRowCounter, 10)) ' tag name
-                            Else
-                                Sheets(strOutputTabName).Cells(currentLine, 44).Value = UCase(Cells(IOSheetRowCounter, 9)) ' tag name
-                            End If
-                            ' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            ' SET THE DESCRIPTION - LEAVE OUT THE BLANK LINES
-                            ' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                            Sheets(strOutputTabName).Cells(currentLine, 45).Value = ""
-                            If Cells(IOSheetRowCounter, 11) <> IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 11)) & "¶"
-                            End If
-                            If Cells(IOSheetRowCounter, 12) <> IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 12)) & "¶"
-                            End If
-                            If Cells(IOSheetRowCounter, 13) <> IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 13)) & "¶"
-                            End If
-                            If Cells(IOSheetRowCounter, 14) <> IsBlank Then
-                                Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 14))
-                                '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                                '  SET THE TEXT IN THE DEVICE DESCRIPTION FIELD FOR THE LOOP DIAGRAM IO
-                                '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                                Sheets(strOutputTabName).Cells(currentLine, 66).Value = UCase(Cells(IOSheetRowCounter, 14))
-                            End If
-                            
-                            Exit For
-                        End If
-                    End If
-                Next cellTagCount
-                If cellTagCount >= intEndIOSymbolRow Then ' didn't find an IO cell simply report it for now
-                    Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Didn't find an IO Symbol for " & testIOString & " (" & Cells(IOSheetRowCounter, 8) & ") from IO sheet Row " & IOSheetRowCounter & ".  Missing at Current Line " & currentLine
-                    intCheckListCounter = intCheckListCounter + 1
-                    Response = MsgBox("Didn't find an IO Symbol for " & testIOString & " from IO sheet Row " & IOSheetRowCounter & ".  Missing at Current Line " & currentLine, vbOKCancel)
-                    If Response = vbCancel Then Exit Sub
-                End If
-             End If
-             
-            ' place the set down points for this IO point
-            Sheets(strOutputTabName).Cells(currentLine, 13).Value = Format(startXPoint, "###.##")
-            Sheets(strOutputTabName).Cells(currentLine, 14).Value = Format(counterYPoint, "###.##")
-            counterYPoint = counterYPoint - incYPoint
-            If counterYPoint < endYPOint Then
-                If Sheets("PLC Lookup").Cells(cardChoice, 3) = 2 Then ' if this is a module that requires 2 ladders and it is time to switch to ladder 2
-                    useRightSide = True
-                    counterYPoint = startYPoint
-                    counterIOPointThisModule = 0
-                ElseIf Sheets("PLC Lookup").Cells(cardChoice, 3) = -1 Then ' This indicates 1 column, but IO on two sides, right was first, now left.  Restart X, Y, but don't increment ladder.
-                    startXPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 14).Value, "###.##")
-                    startYPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 15).Value, "###.##")
-                    counterYPoint = startYPoint
-                    counterIOPointThisModule = 0
-                    doubleSidedModule = 1
-                End If
-            End If
-            currentLine = currentLine + 1
-' PUT THE EXTERNAL TERMINALS IN THE SPREADSHEET
-'            If Cells(IOSheetRowCounter, 28) <> "" Then
-'
-'            End If
-        End If
-    End If
-Next IOSheetRowCounter
+								If Sheets(strOutputTabName).Cells(currentLine, 42).Value = IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 42).Value = UCase(cellTags(cellTagCount, 8)) ' Input Range
+								End If
+								Sheets(strOutputTabName).Cells(currentLine, 43).Value = UCase(cellTags(cellTagCount, 9)) ' Output Range
+								If Cells(IOSheetRowCounter, 9).Value = IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 44).Value = UCase(Cells(IOSheetRowCounter, 10)) ' tag name
+								Else
+									Sheets(strOutputTabName).Cells(currentLine, 44).Value = UCase(Cells(IOSheetRowCounter, 9)) ' tag name
+								End If
+								' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								' SET THE DESCRIPTION - LEAVE OUT THE BLANK LINES
+								' +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+								Sheets(strOutputTabName).Cells(currentLine, 45).Value = ""
+								If Cells(IOSheetRowCounter, 11) <> IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 11)) & "¶"
+								End If
+								If Cells(IOSheetRowCounter, 12) <> IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 12)) & "¶"
+								End If
+								If Cells(IOSheetRowCounter, 13) <> IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 13)) & "¶"
+								End If
+								If Cells(IOSheetRowCounter, 14) <> IsBlank Then
+									Sheets(strOutputTabName).Cells(currentLine, 45).Value = Sheets(strOutputTabName).Cells(currentLine, 45).Value & UCase(Cells(IOSheetRowCounter, 14))
+									'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+									'  SET THE TEXT IN THE DEVICE DESCRIPTION FIELD FOR THE LOOP DIAGRAM IO
+									'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+									Sheets(strOutputTabName).Cells(currentLine, 66).Value = UCase(Cells(IOSheetRowCounter, 14))
+								End If
+								
+								Exit For
+							End If
+						End If
+					Next cellTagCount
+					If cellTagCount >= intEndIOSymbolRow Then ' didn't find an IO cell simply report it for now
+						Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Didn't find an IO Symbol for " & testIOString & " (" & Cells(IOSheetRowCounter, 8) & ") from IO sheet Row " & IOSheetRowCounter & ".  Missing at Current Line " & currentLine
+						intCheckListCounter = intCheckListCounter + 1
+						Response = MsgBox("Didn't find an IO Symbol for " & testIOString & " from IO sheet Row " & IOSheetRowCounter & ".  Missing at Current Line " & currentLine, vbOKCancel)
+						If Response = vbCancel Then Exit Sub
+					End If
+				 End If
+				 
+				' place the set down points for this IO point
+				Sheets(strOutputTabName).Cells(currentLine, 13).Value = Format(startXPoint, "###.##")
+				Sheets(strOutputTabName).Cells(currentLine, 14).Value = Format(counterYPoint, "###.##")
+				counterYPoint = counterYPoint - incYPoint
+				If counterYPoint < endYPOint Then
+					If Sheets("PLC Lookup").Cells(cardChoice, 3) = 2 Then ' if this is a module that requires 2 ladders and it is time to switch to ladder 2
+						useRightSide = True
+						counterYPoint = startYPoint
+						counterIOPointThisModule = 0
+					ElseIf Sheets("PLC Lookup").Cells(cardChoice, 3) = -1 Then ' This indicates 1 column, but IO on two sides, right was first, now left.  Restart X, Y, but don't increment ladder.
+						startXPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 14).Value, "###.##")
+						startYPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 15).Value, "###.##")
+						counterYPoint = startYPoint
+						counterIOPointThisModule = 0
+						doubleSidedModule = 1
+					End If
+				End If
+				currentLine = currentLine + 1
+	' PUT THE EXTERNAL TERMINALS IN THE SPREADSHEET
+	'            If Cells(IOSheetRowCounter, 28) <> "" Then
+	'
+	'            End If
+			End If
+		End If
+	Next IOSheetRowCounter
 
-' If this is a ControlLogix system, check to make sure that the modules are sequential, if not, then add blank covers with Rack and Slot # noted.
-FillOutBlankModule currentLine, needNewPage, intLastRow
+	' If this is a ControlLogix system, check to make sure that the modules are sequential, if not, then add blank covers with Rack and Slot # noted.
+	FillOutBlankModule currentLine, needNewPage, intLastRow
 
-cleanUp:
-    Set microObj = Nothing
-    On Error GoTo 0
-    Exit Sub
+	cleanUp:
+		Set microObj = Nothing
+		On Error GoTo 0
+		Exit Sub
 
-placeCardError:
-    Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Error in the placeCardAndIO subroutine. Current Line # " & currentLine & " IO Sheet Row: " & IOSheetRowCounter & " Card Choice: " & cardChoice & " Check to make sure the 'Blank Cover - 1756-N2' is at Row " & intIOLookup1756N2Row & " in the PLC Lookup tab"
-    intCheckListCounter = intCheckListCounter + 1
-    MsgBox "Error in the placeCardAndIO subroutine. Current Line # " & currentLine & " IO Sheet Row: " & IOSheetRowCounter & " Card Choice: " & cardChoice
-    GoTo cleanUp
+	placeCardError:
+		Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Error in the placeCardAndIO subroutine. Current Line # " & currentLine & " IO Sheet Row: " & IOSheetRowCounter & " Card Choice: " & cardChoice & " Check to make sure the 'Blank Cover - 1756-N2' is at Row " & intIOLookup1756N2Row & " in the PLC Lookup tab"
+		intCheckListCounter = intCheckListCounter + 1
+		MsgBox "Error in the placeCardAndIO subroutine. Current Line # " & currentLine & " IO Sheet Row: " & IOSheetRowCounter & " Card Choice: " & cardChoice
+		GoTo cleanUp
 
-End Sub
-
-
-Sub FillInModule(IOSheetRowCounter As Integer, currentLine As Integer, pageName As Integer, cardChoice As Integer, needNewPage As Integer)
-     If Sheets("PLC Lookup").Cells(cardChoice, 3) = 2 Then ' this means the module takes a full sheet.
-        If useRightSide = True Then ' this means that we have already used the left half of a drawing, so go to new page
-            needNewPage = 1
-        End If
-     End If
-     If needNewPage = 1 Then
-        createNewPage currentLine, pageName
-        needNewPage = 0
-     End If
-     currentLine = currentLine + 1
-     Sheets(strOutputTabName).Cells(currentLine, 1).Value = "####[Y]"
-     currentLine = currentLine + 1
-     'if the cell indicates a NON-IO module then, just give it the Device Name, and don't worry about the other info
-     If InStr(1, Cells(IOSheetRowCounter, 8), "Comm") Or InStr(1, Cells(IOSheetRowCounter, 8), "Power") _
-      Or InStr(1, Cells(IOSheetRowCounter, 8), "Weight") Or InStr(1, Cells(IOSheetRowCounter, 8), "PLC") _
-      Or InStr(1, Cells(IOSheetRowCounter, 8), "Blank") Then
-        Sheets(strOutputTabName).Cells(currentLine, 21).Value = Sheets("PLC Lookup").Cells(cardChoice, 17).Value ' Put the PLC Line (1756, 1769, etc) designation into the Address Channel Channel 0 column
-        Sheets(strOutputTabName).Cells(currentLine, 22).Value = Sheets("PLC Lookup").Cells(cardChoice, 20).Value ' Put the Part number (1756-L72, etc) designation into the Address Channel Channel 0 column
-     Else
-     ' sets the starting points (X,Y) for the IO as well as the increment between points and if there is a gap in the middle
-        startXPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 6).Value, "###.##")
-        startYPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 7).Value, "###.##")
-        counterYPoint = startYPoint
-        incYPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 8).Value, "###.##")
-        endYPOint = Sheets("PLC Lookup").Cells(cardChoice, 13).Value ' value below which we won't put another IO symbol
-        If Sheets("PLC Lookup").Cells(cardChoice, 9) > 0 Then ' we've got a module that has a step in the middle
-           countStepAfterPoint = Sheets("PLC Lookup").Cells(cardChoice, 9)
-           stepSize = Format(Sheets("PLC Lookup").Cells(cardChoice, 10) - incYPoint, "###.##")
-        Else
-           countStepAfterPoint = 0
-           stepSize = 0
-        End If
-        counterIOPointThisModule = 0
-        If Sheets("PLC Lookup").Cells(cardChoice, 11) = 1 Then ' if the card requires IO symbols that are different for odd or even channels.
-           boolOddEven = 1
-        Else
-           boolOddEven = 0
-        End If
-     End If
-     
-     Sheets(strOutputTabName).Cells(currentLine, 1).Value = Sheets("PLC Lookup").Cells(cardChoice, 2).Value ' macro location
-     Sheets(strOutputTabName).Cells(currentLine, 9).Value = pageNamePrefix & pageName
-     Sheets(strOutputTabName).Cells(currentLine, 10).Value = "Multi-line"
-' Determine if the outputs need to be fused or not
-     If Cells(3, 15) = "YES" And Sheets("PLC Lookup").Cells(cardChoice, 4) = "O" Then
-        Sheets(strOutputTabName).Cells(currentLine, 11).Value = Sheets("PLC Lookup").Cells(cardChoice, 19).Value  'Use the Fused Variant
-        If Sheets("PLC Lookup").Cells(cardChoice, 17).Value = IsBlank Then
-            Sheets("Check List").Cells(intCheckListCounter, 2).Value = "The output module " & Sheets("PLC Lookup").Cells(cardChoice, 1).Value & " does not have a fused output variant listed in the PLC Lookup table"
-            intCheckListCounter = intCheckListCounter + 1
-        End If
-     Else
-        Sheets(strOutputTabName).Cells(currentLine, 11).Value = Sheets("PLC Lookup").Cells(cardChoice, 12).Value  'Use the non-Fused variant
-     End If
-     If useRightSide = True Then ' Left column has already been used, so use right column and increment pagename
-        Sheets(strOutputTabName).Cells(currentLine, 15).Value = 2
-        Sheets(strOutputTabName).Cells(currentLine, 17).Value = "PLC" & pageNamePrefix & pageName & "41" ' PLC DT value
-     Else
-        Sheets(strOutputTabName).Cells(currentLine, 15).Value = 1  ' use left column and note next time should be right
-        Sheets(strOutputTabName).Cells(currentLine, 17).Value = "PLC" & pageNamePrefix & pageName & "01" ' PLC DT value
-     End If
-     Sheets(strOutputTabName).Cells(currentLine, 16).Value = Cells(IOSheetRowCounter, 4) ' Rack #
-     Sheets(strOutputTabName).Cells(currentLine, 18).Value = Cells(IOSheetRowCounter, 5) ' Slot #
-     
-    If Cells(IOSheetRowCounter, 12) = IsBlank Then ' If the Power Terminal cell is empty for this card, use the defaults on the Entry tab
-        Select Case Sheets("PLC Lookup").Cells(cardChoice, 4)
-        Case "I"
-            Sheets(strOutputTabName).Cells(currentLine, 19).Value = Sheets(strInputTabName).Cells(1, 13).Value ' input power terminal
-            Sheets(strOutputTabName).Cells(currentLine, 20).Value = Sheets(strInputTabName).Cells(2, 13).Value ' input neu/com terminal
-        Case "O", "Q"
-            Sheets(strOutputTabName).Cells(currentLine, 19).Value = Sheets(strInputTabName).Cells(3, 13).Value ' output power terminal
-            Sheets(strOutputTabName).Cells(currentLine, 20).Value = Sheets(strInputTabName).Cells(4, 13).Value ' output neu/com terminal
-        Case "AI", "AO", "IW", "QW"
-            Sheets(strOutputTabName).Cells(currentLine, 19).Value = Sheets(strInputTabName).Cells(5, 13).Value ' analog power terminal
-            Sheets(strOutputTabName).Cells(currentLine, 20).Value = Sheets(strInputTabName).Cells(6, 13).Value ' analog common terminal
-       
-        End Select
-    Else
-        Sheets(strOutputTabName).Cells(currentLine, 19).Value = Cells(IOSheetRowCounter, 12) ' Power Terminal
-        Sheets(strOutputTabName).Cells(currentLine, 20).Value = Cells(IOSheetRowCounter, 14) ' Neutral Terminal
-    End If
-' SET THE IO ADDRESSES INTO THE MODULE.  Use the "siemens" method so that what is on the spreadsheet in column 8 is what is displayed on the drawings
-     For Point = 0 To Sheets("PLC Lookup").Cells(cardChoice, 5).Value - 1
-        If Point < 16 Then subPoint = Point Else subPoint = Point + 11 ' channels 16 to 31 are located in columns AV and on.
-'            If Sheets(strInputTabName).Cells(4, 10).Value = "Allen Bradley" Then
-'                Sheets(strOutputTabName).Cells(currentLine, subPoint + 21).Value = Sheets("PLC Lookup").Cells(cardChoice, 4).Value _
-'                 & ":" & Format(Sheets(strOutputTabName).Cells(currentLine, 16).Value, "0#") & "." & _
-'                 Format(Sheets(strOutputTabName).Cells(currentLine, 18).Value, "0#") & "." & _
-'                 Format(Point, "0#")
-'            ElseIf Sheets(strInputTabName).Cells(4, 10).Value = "Siemens" Then
-                intIOAddressRowCounter = IOSheetRowCounter + Point + 1
-                Sheets(strOutputTabName).Cells(currentLine, subPoint + 21).Value = Sheets(strInputTabName).Cells(intIOAddressRowCounter, 8).Value
-'            End If
-     Next Point
-     
-     If Sheets("PLC Lookup").Cells(cardChoice, 16) = IsBlank Then
-     Else
-        Sheets("Check List").Cells(intCheckListCounter, 2).Value = Sheets("PLC Lookup").Cells(cardChoice, 16).Value & " - IO module " & Sheets("PLC Lookup").Cells(cardChoice, 1).Value & " at rack " & Cells(IOSheetRowCounter, 4) & _
-      " slot " & Cells(IOSheetRowCounter, 5)
-        intCheckListCounter = intCheckListCounter + 1
-     End If
-     currentLine = currentLine + 1
-     Sheets(strOutputTabName).Cells(currentLine, 1).Value = "####[X/Y]"
-     currentLine = currentLine + 1
-             
-End Sub
-
-' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'  GetCard finds the IO module based on the text in column H.
-' the information is then entered into the output sheet.
-' if it is a controlLogix system and there are gaps between
-' modules or at the end of the rack, the 1756-N2 module will be inserted
-' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Function GetCard(i As Integer, currentLine As Integer, pageName As Integer, needNewPage As Integer) As Integer
-Dim cardChoice As Integer
-' needNewPage = 0
-
-' If this is a ControlLogix system, check to make sure that the modules are sequential, if not, then add blank covers with Rack and Slot # noted.
-    If intCurrentRackMax > 0 Then ' this means that it is a ControlLogix system and has a rack
-        If strRackNumber <> "Blank" And strRackNumber <> Cells(i, 4) Then ' switched racks
-            FillOutBlankModule currentLine, needNewPage, i ' fill out rest of the modules with blank covers
-            intCurrentRackModule = 0   ' reset module count to zero
-            needNewPage = 1  ' create a new page for the new rack
-            strRackNumber = Cells(i, 4)  ' set rack # to the new rack #
-        End If
-        ' ----------------------------------
-        ' fills in any blanks with the blank cover at the begining, or in the middle of a ControlLogix rack
-        ' __________________________________
-        If intCurrentRackModule >= 0 And intCurrentRackModule < intCurrentRackMax Then
-            While intCurrentRackModule + 1 < Cells(i, 5) And intCurrentRackModule < intCurrentRackMax
-                'got a gap in the module sequence
-                If useRightSide = False Then
-                    useRightSide = True
-                Else
-                    needNewPage = 1
-                End If
-                FillInModule i, currentLine, pageName, intIOLookup1756N2Row, needNewPage ' intIOLookup1756N2Row is the 1756-N2 module
-                intCurrentRackModule = intCurrentRackModule + 1
-                Sheets(strOutputTabName).Cells(currentLine - 2, 18).Value = intCurrentRackModule ' Slot #
-                Sheets(strOutputTabName).Cells(currentLine - 2, 16).Value = strRackNumber ' Rack #
-            Wend
-        End If
-        ' set the module/slot # on the first run through
-        intCurrentRackModule = Cells(i, 5)
-    End If
-    For cardChoice = 3 To intIOLookup1756N2Row
-        If Cells(i, 8) = Sheets("PLC Lookup").Cells(cardChoice, 1).Value Or cardChoice > intIOLookup1756N2Row Then  'found the card for this one - load the strOutputTabName with the information
-            If cardChoice > intIOLookup1756N2Row Then
-                Sheets("Check List").Cells(intCheckListCounter, 2).Value = "IO Module on row " & i & " not found in the PLC Lookup table, Blank Ladder inserted."
-                intCheckListCounter = intCheckListCounter + 1
-                MsgBox "IO Module on row " & i & " not found in the PLC Lookup table, Blank Ladder inserted."
-            End If
-' if we've already used the right side of the drawing, create a new page
-            If useRightSide = False Then
-                useRightSide = True
-            Else
-                needNewPage = 1
-            End If
-            ' Check to see of the rack number changes - if it has, then create a new page  If this is the first entry, it counts as a new rack
-            If strRackNumber <> "Blank" Then
-                If strRackNumber <> Cells(i, 4) Then ' the rack number changed - start a new page
-                    FillOutBlankModule currentLine, needNewPage, i
-                    needNewPage = 1
-                    strRackNumber = Cells(i, 4)
-                End If
-            Else
-                strRackNumber = Cells(i, 4)
-            End If
-
-            FillInModule i, currentLine, pageName, cardChoice, needNewPage
-            Exit For
-        End If
-    Next cardChoice
-    
-    GetCard = cardChoice
-End Function
-
-Sub setPageDescriptions()
-
-For i = 1 To 100
-    If arrayPageDesc(i) > 0 Then
-        Sheets(strOutputTabName).Cells(arrayPageDesc(i), 46) = "I/O ASSIGNMENT SHEET " & i & " OF " & counterPageDesc - 1
-    Else
-        Exit For
-    End If
-Next i
-
-End Sub
-Sub setCellTags()
-
-' TO DO IN THIS SECTION OF THE PROGRAM:
-' - MAKE THE COLUMNS FLEXIBLE BASED ON THE HEADING
-
-' Sets the Spare IO counters to zero.  These are set in the SetCellTags subroutine so that any spare IO point can be directly set to the corresponding spare Macro
-intSpareInputCounter = 0
-intSpareOutputCounter = 0
-intSpareAnalogInputCounter = 0
-intSpareAnalogOutputCounter = 0
-intSpareRTDCounter = 0
-
-' Get the start and ending rows for each IO type and redimension the cellTags array so that we can just search portion of the cell tags that relate to the IO Module type
-' This will make it faster and allow for the same Tag to be used in each IO type.  IE, ALM, can be a relay contact in the digital inputs and a beacon in the digital outputs.
-intDISymbolStartRow = Sheets("IO Lookup").Cells(7, 2).Value
-intDISymbolEndRow = Sheets("IO Lookup").Cells(7, 3).Value
-intDOSymbolStartRow = Sheets("IO Lookup").Cells(6, 2).Value
-intDOSymbolEndRow = Sheets("IO Lookup").Cells(6, 3).Value
-intAISymbolStartRow = Sheets("IO Lookup").Cells(5, 2).Value
-intAISymbolEndRow = Sheets("IO Lookup").Cells(5, 3).Value
-intAOSymbolStartRow = Sheets("IO Lookup").Cells(4, 2).Value
-intAOSymbolEndRow = Sheets("IO Lookup").Cells(4, 3).Value
-intRTDSymbolStartRow = Sheets("IO Lookup").Cells(3, 2).Value
-intRTDSymbolEndRow = Sheets("IO Lookup").Cells(3, 3).Value
-IOSymbolListLength = Sheets("IO Lookup").Cells(3, 3).Value
-ReDim cellTags(0 To IOSymbolListLength, 0 To 15)
+	End Sub
 
 
-'(x,0) are the strings that are expected to be found in the Excel tags
-'(x,1) are the corresponding names for the cells
+	Sub FillInModule(IOSheetRowCounter As Integer, currentLine As Integer, pageName As Integer, cardChoice As Integer, needNewPage As Integer)
+		 If Sheets("PLC Lookup").Cells(cardChoice, 3) = 2 Then ' this means the module takes a full sheet.
+			If useRightSide = True Then ' this means that we have already used the left half of a drawing, so go to new page
+				needNewPage = 1
+			End If
+		 End If
+		 If needNewPage = 1 Then
+			createNewPage currentLine, pageName
+			needNewPage = 0
+		 End If
+		 currentLine = currentLine + 1
+		 Sheets(strOutputTabName).Cells(currentLine, 1).Value = "####[Y]"
+		 currentLine = currentLine + 1
+		 'if the cell indicates a NON-IO module then, just give it the Device Name, and don't worry about the other info
+		 If InStr(1, Cells(IOSheetRowCounter, 8), "Comm") Or InStr(1, Cells(IOSheetRowCounter, 8), "Power") _
+		  Or InStr(1, Cells(IOSheetRowCounter, 8), "Weight") Or InStr(1, Cells(IOSheetRowCounter, 8), "PLC") _
+		  Or InStr(1, Cells(IOSheetRowCounter, 8), "Blank") Then
+			Sheets(strOutputTabName).Cells(currentLine, 21).Value = Sheets("PLC Lookup").Cells(cardChoice, 17).Value ' Put the PLC Line (1756, 1769, etc) designation into the Address Channel Channel 0 column
+			Sheets(strOutputTabName).Cells(currentLine, 22).Value = Sheets("PLC Lookup").Cells(cardChoice, 20).Value ' Put the Part number (1756-L72, etc) designation into the Address Channel Channel 0 column
+		 Else
+		 ' sets the starting points (X,Y) for the IO as well as the increment between points and if there is a gap in the middle
+			startXPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 6).Value, "###.##")
+			startYPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 7).Value, "###.##")
+			counterYPoint = startYPoint
+			incYPoint = Format(Sheets("PLC Lookup").Cells(cardChoice, 8).Value, "###.##")
+			endYPOint = Sheets("PLC Lookup").Cells(cardChoice, 13).Value ' value below which we won't put another IO symbol
+			If Sheets("PLC Lookup").Cells(cardChoice, 9) > 0 Then ' we've got a module that has a step in the middle
+			   countStepAfterPoint = Sheets("PLC Lookup").Cells(cardChoice, 9)
+			   stepSize = Format(Sheets("PLC Lookup").Cells(cardChoice, 10) - incYPoint, "###.##")
+			Else
+			   countStepAfterPoint = 0
+			   stepSize = 0
+			End If
+			counterIOPointThisModule = 0
+			If Sheets("PLC Lookup").Cells(cardChoice, 11) = 1 Then ' if the card requires IO symbols that are different for odd or even channels.
+			   boolOddEven = 1
+			Else
+			   boolOddEven = 0
+			End If
+		 End If
+		 
+		 Sheets(strOutputTabName).Cells(currentLine, 1).Value = Sheets("PLC Lookup").Cells(cardChoice, 2).Value ' macro location
+		 Sheets(strOutputTabName).Cells(currentLine, 9).Value = pageNamePrefix & pageName
+		 Sheets(strOutputTabName).Cells(currentLine, 10).Value = "Multi-line"
+	' Determine if the outputs need to be fused or not
+		 If Cells(3, 15) = "YES" And Sheets("PLC Lookup").Cells(cardChoice, 4) = "O" Then
+			Sheets(strOutputTabName).Cells(currentLine, 11).Value = Sheets("PLC Lookup").Cells(cardChoice, 19).Value  'Use the Fused Variant
+			If Sheets("PLC Lookup").Cells(cardChoice, 17).Value = IsBlank Then
+				Sheets("Check List").Cells(intCheckListCounter, 2).Value = "The output module " & Sheets("PLC Lookup").Cells(cardChoice, 1).Value & " does not have a fused output variant listed in the PLC Lookup table"
+				intCheckListCounter = intCheckListCounter + 1
+			End If
+		 Else
+			Sheets(strOutputTabName).Cells(currentLine, 11).Value = Sheets("PLC Lookup").Cells(cardChoice, 12).Value  'Use the non-Fused variant
+		 End If
+		 If useRightSide = True Then ' Left column has already been used, so use right column and increment pagename
+			Sheets(strOutputTabName).Cells(currentLine, 15).Value = 2
+			Sheets(strOutputTabName).Cells(currentLine, 17).Value = "PLC" & pageNamePrefix & pageName & "41" ' PLC DT value
+		 Else
+			Sheets(strOutputTabName).Cells(currentLine, 15).Value = 1  ' use left column and note next time should be right
+			Sheets(strOutputTabName).Cells(currentLine, 17).Value = "PLC" & pageNamePrefix & pageName & "01" ' PLC DT value
+		 End If
+		 Sheets(strOutputTabName).Cells(currentLine, 16).Value = Cells(IOSheetRowCounter, 4) ' Rack #
+		 Sheets(strOutputTabName).Cells(currentLine, 18).Value = Cells(IOSheetRowCounter, 5) ' Slot #
+		 
+		If Cells(IOSheetRowCounter, 12) = IsBlank Then ' If the Power Terminal cell is empty for this card, use the defaults on the Entry tab
+			Select Case Sheets("PLC Lookup").Cells(cardChoice, 4)
+			Case "I"
+				Sheets(strOutputTabName).Cells(currentLine, 19).Value = Sheets(strInputTabName).Cells(1, 13).Value ' input power terminal
+				Sheets(strOutputTabName).Cells(currentLine, 20).Value = Sheets(strInputTabName).Cells(2, 13).Value ' input neu/com terminal
+			Case "O", "Q"
+				Sheets(strOutputTabName).Cells(currentLine, 19).Value = Sheets(strInputTabName).Cells(3, 13).Value ' output power terminal
+				Sheets(strOutputTabName).Cells(currentLine, 20).Value = Sheets(strInputTabName).Cells(4, 13).Value ' output neu/com terminal
+			Case "AI", "AO", "IW", "QW"
+				Sheets(strOutputTabName).Cells(currentLine, 19).Value = Sheets(strInputTabName).Cells(5, 13).Value ' analog power terminal
+				Sheets(strOutputTabName).Cells(currentLine, 20).Value = Sheets(strInputTabName).Cells(6, 13).Value ' analog common terminal
+		   
+			End Select
+		Else
+			Sheets(strOutputTabName).Cells(currentLine, 19).Value = Cells(IOSheetRowCounter, 12) ' Power Terminal
+			Sheets(strOutputTabName).Cells(currentLine, 20).Value = Cells(IOSheetRowCounter, 14) ' Neutral Terminal
+		End If
+	' SET THE IO ADDRESSES INTO THE MODULE.  Use the "siemens" method so that what is on the spreadsheet in column 8 is what is displayed on the drawings
+		 For Point = 0 To Sheets("PLC Lookup").Cells(cardChoice, 5).Value - 1
+			If Point < 16 Then subPoint = Point Else subPoint = Point + 11 ' channels 16 to 31 are located in columns AV and on.
+	'            If Sheets(strInputTabName).Cells(4, 10).Value = "Allen Bradley" Then
+	'                Sheets(strOutputTabName).Cells(currentLine, subPoint + 21).Value = Sheets("PLC Lookup").Cells(cardChoice, 4).Value _
+	'                 & ":" & Format(Sheets(strOutputTabName).Cells(currentLine, 16).Value, "0#") & "." & _
+	'                 Format(Sheets(strOutputTabName).Cells(currentLine, 18).Value, "0#") & "." & _
+	'                 Format(Point, "0#")
+	'            ElseIf Sheets(strInputTabName).Cells(4, 10).Value = "Siemens" Then
+					intIOAddressRowCounter = IOSheetRowCounter + Point + 1
+					Sheets(strOutputTabName).Cells(currentLine, subPoint + 21).Value = Sheets(strInputTabName).Cells(intIOAddressRowCounter, 8).Value
+	'            End If
+		 Next Point
+		 
+		 If Sheets("PLC Lookup").Cells(cardChoice, 16) = IsBlank Then
+		 Else
+			Sheets("Check List").Cells(intCheckListCounter, 2).Value = Sheets("PLC Lookup").Cells(cardChoice, 16).Value & " - IO module " & Sheets("PLC Lookup").Cells(cardChoice, 1).Value & " at rack " & Cells(IOSheetRowCounter, 4) & _
+		  " slot " & Cells(IOSheetRowCounter, 5)
+			intCheckListCounter = intCheckListCounter + 1
+		 End If
+		 currentLine = currentLine + 1
+		 Sheets(strOutputTabName).Cells(currentLine, 1).Value = "####[X/Y]"
+		 currentLine = currentLine + 1
+				 
+	End Sub
 
-Sheets("IO Lookup").Select
-'set up default values for cell tags
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	'  GetCard finds the IO module based on the text in column H.
+	' the information is then entered into the output sheet.
+	' if it is a controlLogix system and there are gaps between
+	' modules or at the end of the rack, the 1756-N2 module will be inserted
+	' ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	Function GetCard(i As Integer, currentLine As Integer, pageName As Integer, needNewPage As Integer) As Integer
+	Dim cardChoice As Integer
+	' needNewPage = 0
 
-For i = 1 To IOSymbolListLength
-    If Cells(i, 1) = IsBlank Then
-        cellTags(i, 0) = "_?&^" '0 entries default to value unlikely to be found in the Excel
-        cellTags(i, 1) = "_UNKNOWN" '0 entries default to value unlikely to be found in the Excel
-        cellTags(i, 2) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 3) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 4) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 5) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 6) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 7) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 8) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 9) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 10) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 11) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 12) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-        cellTags(i, 13) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
-    Else
-        cellTags(i, 0) = Cells(i, 1) ' Excel tag
-        cellTags(i, 1) = Cells(i, 11) ' Macro Location
-        cellTags(i, 2) = Cells(i, 10) ' Variant
-        cellTags(i, 3) = Cells(i, 2) ' Terminal A
-        cellTags(i, 4) = Cells(i, 3) ' Terminal B
-        cellTags(i, 5) = Cells(i, 4) ' Terminal C
-        cellTags(i, 6) = Cells(i, 5) ' Terminal D
-        cellTags(i, 7) = Cells(i, 6) ' Terminal E
-        cellTags(i, 8) = Cells(i, 7) ' Input Range
-        cellTags(i, 9) = Cells(i, 8) ' Output Range
-        cellTags(i, 10) = Cells(i, 12) ' Offset for output power (120, 24) variant differences - should be 0 or 1
-        cellTags(i, 11) = Cells(i, 13) ' Warning message based on the IO symbol - primarily the interruption points to start with.
-        cellTags(i, 12) = Cells(i, 15) ' Loop Macro Location
-        cellTags(i, 13) = Cells(i, 14) ' Loop Variant
-        If Cells(i, 1) = "SI" Then intSpareInputCounter = i
-        If Cells(i, 1) = "SO" Then intSpareOutputCounter = i
-        If Cells(i, 1) = "SAI" Then intSpareAnalogInputCounter = i
-        If Cells(i, 1) = "SAO" Then intSpareAnalogOutputCounter = i
-        If Cells(i, 1) = "SRTD" And intSpareRTDCounter = 0 Then intSpareRTDCounter = i
-        If Left(Cells(i, 1), 5) = "INPUT" Then intInputCounter = i
-        If Left(Cells(i, 1), 6) = "OUTPUT" Then intOutputCounter = i
-        If Left(Cells(i, 1), 12) = "ANALOG INPUT" Then intAnalogInputCounter = i
-        If Left(Cells(i, 1), 13) = "ANALOG OUTPUT" Then intAnalogOutputCounter = i
-        If Left(Cells(i, 1), 9) = "RTD INPUT" Then intRTDInputCounter = i
-    End If
+	' If this is a ControlLogix system, check to make sure that the modules are sequential, if not, then add blank covers with Rack and Slot # noted.
+		If intCurrentRackMax > 0 Then ' this means that it is a ControlLogix system and has a rack
+			If strRackNumber <> "Blank" And strRackNumber <> Cells(i, 4) Then ' switched racks
+				FillOutBlankModule currentLine, needNewPage, i ' fill out rest of the modules with blank covers
+				intCurrentRackModule = 0   ' reset module count to zero
+				needNewPage = 1  ' create a new page for the new rack
+				strRackNumber = Cells(i, 4)  ' set rack # to the new rack #
+			End If
+			' ----------------------------------
+			' fills in any blanks with the blank cover at the begining, or in the middle of a ControlLogix rack
+			' __________________________________
+			If intCurrentRackModule >= 0 And intCurrentRackModule < intCurrentRackMax Then
+				While intCurrentRackModule + 1 < Cells(i, 5) And intCurrentRackModule < intCurrentRackMax
+					'got a gap in the module sequence
+					If useRightSide = False Then
+						useRightSide = True
+					Else
+						needNewPage = 1
+					End If
+					FillInModule i, currentLine, pageName, intIOLookup1756N2Row, needNewPage ' intIOLookup1756N2Row is the 1756-N2 module
+					intCurrentRackModule = intCurrentRackModule + 1
+					Sheets(strOutputTabName).Cells(currentLine - 2, 18).Value = intCurrentRackModule ' Slot #
+					Sheets(strOutputTabName).Cells(currentLine - 2, 16).Value = strRackNumber ' Rack #
+				Wend
+			End If
+			' set the module/slot # on the first run through
+			intCurrentRackModule = Cells(i, 5)
+		End If
+		For cardChoice = 3 To intIOLookup1756N2Row
+			If Cells(i, 8) = Sheets("PLC Lookup").Cells(cardChoice, 1).Value Or cardChoice > intIOLookup1756N2Row Then  'found the card for this one - load the strOutputTabName with the information
+				If cardChoice > intIOLookup1756N2Row Then
+					Sheets("Check List").Cells(intCheckListCounter, 2).Value = "IO Module on row " & i & " not found in the PLC Lookup table, Blank Ladder inserted."
+					intCheckListCounter = intCheckListCounter + 1
+					MsgBox "IO Module on row " & i & " not found in the PLC Lookup table, Blank Ladder inserted."
+				End If
+	' if we've already used the right side of the drawing, create a new page
+				If useRightSide = False Then
+					useRightSide = True
+				Else
+					needNewPage = 1
+				End If
+				' Check to see of the rack number changes - if it has, then create a new page  If this is the first entry, it counts as a new rack
+				If strRackNumber <> "Blank" Then
+					If strRackNumber <> Cells(i, 4) Then ' the rack number changed - start a new page
+						FillOutBlankModule currentLine, needNewPage, i
+						needNewPage = 1
+						strRackNumber = Cells(i, 4)
+					End If
+				Else
+					strRackNumber = Cells(i, 4)
+				End If
 
-Next i
+				FillInModule i, currentLine, pageName, cardChoice, needNewPage
+				Exit For
+			End If
+		Next cardChoice
+		
+		GetCard = cardChoice
+	End Function
 
-End Sub
+	Sub setPageDescriptions()
 
-Sub createNewPage(currentLine As Integer, pageName As Integer)
-    pageName = pageName + 1
-    currentLine = currentLine + 1
-    Sheets(strOutputTabName).Cells(currentLine, 1).Value = Sheets("Entry").Cells(14, 2).Value
-    Sheets(strOutputTabName).Cells(currentLine, 3).Value = projectName
-    Sheets(strOutputTabName).Cells(currentLine, 5).Value = panelDesignation
-    Sheets(strOutputTabName).Cells(currentLine, 9).Value = pageNamePrefix & pageName
-    ' load currentLine into the PageDescripton array so that we can go back through at end and assign page descriptions
-    arrayPageDesc(counterPageDesc) = currentLine
-    arrayPageDesc(counterPageDesc + 1) = 0 ' Hasn't been needed up to this point, but for some reason the array isn't zeroing.
-    counterPageDesc = counterPageDesc + 1 ' increment the # of pages
-    useRightSide = False
+	For i = 1 To 100
+		If arrayPageDesc(i) > 0 Then
+			Sheets(strOutputTabName).Cells(arrayPageDesc(i), 46) = "I/O ASSIGNMENT SHEET " & i & " OF " & counterPageDesc - 1
+		Else
+			Exit For
+		End If
+	Next i
 
-End Sub
+	End Sub
+	Sub setCellTags()
 
-Sub FillOutBlankModule(currentLine As Integer, needNewPage As Integer, IOSheetRowCounter As Integer)
-'    If intCurrentRackModule >= 0 And intCurrentRackModule <= intCurrentRackMax Then
-    If intCurrentRackModule >= 0 And intCurrentRackModule < intCurrentRackMax Then
-'        While intCurrentRackModule < intCurrentRackMax
-        While intCurrentRackModule < intCurrentRackMax - 1
-            'got spares at the end
-            If useRightSide = False Then
-                useRightSide = True
-            Else
-                needNewPage = 1
-            End If
-            FillInModule intLastRow, currentLine, pageName, intIOLookup1756N2Row, needNewPage ' intIOLookup1756N2Row is the 1756-N2 module
-            intCurrentRackModule = intCurrentRackModule + 1
-            Sheets(strOutputTabName).Cells(currentLine - 2, 18).Value = intCurrentRackModule ' Slot #
-            Sheets(strOutputTabName).Cells(currentLine - 2, 16).Value = strRackNumber ' Rack #
-        Wend
-    End If
-    If intCurrentRackMax > 0 Then ' ControlLogix system, so have to take into account blank covers
-         intCurrentRackCount = intCurrentRackCount + 1 ' increment the rack #.
-         If intCurrentRackCount = 2 Then
-             intCurrentRackMax = Sheets(strInputTabName).Cells(2, 6).Value
-         ElseIf intCurrentRackCount = 3 Then
-             intCurrentRackMax = Sheets(strInputTabName).Cells(3, 6).Value
-         Else
-             Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Error in the # of ControlLogix Racks in the IO File"
-             intCheckListCounter = intCheckListCounter + 1
-             MsgBox "Error in the # of ControlLogix Racks in the IO File"
-         End If
-         intCurrentRackModule = Cells(IOSheetRowCounter, 5)
-     End If
+	' TO DO IN THIS SECTION OF THE PROGRAM:
+	' - MAKE THE COLUMNS FLEXIBLE BASED ON THE HEADING
 
-End Sub
+	' Sets the Spare IO counters to zero.  These are set in the SetCellTags subroutine so that any spare IO point can be directly set to the corresponding spare Macro
+	intSpareInputCounter = 0
+	intSpareOutputCounter = 0
+	intSpareAnalogInputCounter = 0
+	intSpareAnalogOutputCounter = 0
+	intSpareRTDCounter = 0
 
-Sub limitOutput(currentLine As Integer)
-Dim strIOModuleOnly As String
-Dim strIOPointsOnly As String
-Dim intLimitRowCount As Integer
+	' Get the start and ending rows for each IO type and redimension the cellTags array so that we can just search portion of the cell tags that relate to the IO Module type
+	' This will make it faster and allow for the same Tag to be used in each IO type.  IE, ALM, can be a relay contact in the digital inputs and a beacon in the digital outputs.
+	intDISymbolStartRow = Sheets("IO Lookup").Cells(7, 2).Value
+	intDISymbolEndRow = Sheets("IO Lookup").Cells(7, 3).Value
+	intDOSymbolStartRow = Sheets("IO Lookup").Cells(6, 2).Value
+	intDOSymbolEndRow = Sheets("IO Lookup").Cells(6, 3).Value
+	intAISymbolStartRow = Sheets("IO Lookup").Cells(5, 2).Value
+	intAISymbolEndRow = Sheets("IO Lookup").Cells(5, 3).Value
+	intAOSymbolStartRow = Sheets("IO Lookup").Cells(4, 2).Value
+	intAOSymbolEndRow = Sheets("IO Lookup").Cells(4, 3).Value
+	intRTDSymbolStartRow = Sheets("IO Lookup").Cells(3, 2).Value
+	intRTDSymbolEndRow = Sheets("IO Lookup").Cells(3, 3).Value
+	IOSymbolListLength = Sheets("IO Lookup").Cells(3, 3).Value
+	ReDim cellTags(0 To IOSymbolListLength, 0 To 15)
 
-strIOModulesOnly = Sheets("Entry").Cells(intEntryIOModulesOnlyRow, 4).Value
-strIOPointsOnly = Sheets("Entry").Cells(intEntryIOPointsOnlyRow, 4).Value
 
-Sheets(strOutputTabName).Select
+	'(x,0) are the strings that are expected to be found in the Excel tags
+	'(x,1) are the corresponding names for the cells
 
-If (strIOModulesOnly = "NO" And strIOPointsOnly = "NO") Then
-    MsgBox "You must include IO Modules, IO Points, or Both to Run"
-ElseIf (strIOPointsOnly = "NO") Then
-    For intLimitRowCount = 1 To currentLine
-        If Cells(intLimitRowCount, 13) = "" Then ' this means that the row is an IO module
-        Else
-            Cells(intLimitRowCount, 12) = "!"
-        End If
-    Next intLimitRowCount
+	Sheets("IO Lookup").Select
+	'set up default values for cell tags
 
-ElseIf (strIOModulesOnly = "NO") Then
-    For intLimitRowCount = 1 To currentLine
-        If Cells(intLimitRowCount, 16) = "" Then ' this means that the row is an IO point
-        Else
-            Cells(intLimitRowCount, 12) = "!"
-        End If
-     Next intLimitRowCount
-End If
+	For i = 1 To IOSymbolListLength
+		If Cells(i, 1) = IsBlank Then
+			cellTags(i, 0) = "_?&^" '0 entries default to value unlikely to be found in the Excel
+			cellTags(i, 1) = "_UNKNOWN" '0 entries default to value unlikely to be found in the Excel
+			cellTags(i, 2) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 3) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 4) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 5) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 6) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 7) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 8) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 9) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 10) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 11) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 12) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+			cellTags(i, 13) = "_UNKNOWN" '1 entries default to _UNKNOWN tag
+		Else
+			cellTags(i, 0) = Cells(i, 1) ' Excel tag
+			cellTags(i, 1) = Cells(i, 11) ' Macro Location
+			cellTags(i, 2) = Cells(i, 10) ' Variant
+			cellTags(i, 3) = Cells(i, 2) ' Terminal A
+			cellTags(i, 4) = Cells(i, 3) ' Terminal B
+			cellTags(i, 5) = Cells(i, 4) ' Terminal C
+			cellTags(i, 6) = Cells(i, 5) ' Terminal D
+			cellTags(i, 7) = Cells(i, 6) ' Terminal E
+			cellTags(i, 8) = Cells(i, 7) ' Input Range
+			cellTags(i, 9) = Cells(i, 8) ' Output Range
+			cellTags(i, 10) = Cells(i, 12) ' Offset for output power (120, 24) variant differences - should be 0 or 1
+			cellTags(i, 11) = Cells(i, 13) ' Warning message based on the IO symbol - primarily the interruption points to start with.
+			cellTags(i, 12) = Cells(i, 15) ' Loop Macro Location
+			cellTags(i, 13) = Cells(i, 14) ' Loop Variant
+			If Cells(i, 1) = "SI" Then intSpareInputCounter = i
+			If Cells(i, 1) = "SO" Then intSpareOutputCounter = i
+			If Cells(i, 1) = "SAI" Then intSpareAnalogInputCounter = i
+			If Cells(i, 1) = "SAO" Then intSpareAnalogOutputCounter = i
+			If Cells(i, 1) = "SRTD" And intSpareRTDCounter = 0 Then intSpareRTDCounter = i
+			If Left(Cells(i, 1), 5) = "INPUT" Then intInputCounter = i
+			If Left(Cells(i, 1), 6) = "OUTPUT" Then intOutputCounter = i
+			If Left(Cells(i, 1), 12) = "ANALOG INPUT" Then intAnalogInputCounter = i
+			If Left(Cells(i, 1), 13) = "ANALOG OUTPUT" Then intAnalogOutputCounter = i
+			If Left(Cells(i, 1), 9) = "RTD INPUT" Then intRTDInputCounter = i
+		End If
+
+	Next i
+
+	End Sub
+
+	Sub createNewPage(currentLine As Integer, pageName As Integer)
+		pageName = pageName + 1
+		currentLine = currentLine + 1
+		Sheets(strOutputTabName).Cells(currentLine, 1).Value = Sheets("Entry").Cells(14, 2).Value
+		Sheets(strOutputTabName).Cells(currentLine, 3).Value = projectName
+		Sheets(strOutputTabName).Cells(currentLine, 5).Value = panelDesignation
+		Sheets(strOutputTabName).Cells(currentLine, 9).Value = pageNamePrefix & pageName
+		' load currentLine into the PageDescripton array so that we can go back through at end and assign page descriptions
+		arrayPageDesc(counterPageDesc) = currentLine
+		arrayPageDesc(counterPageDesc + 1) = 0 ' Hasn't been needed up to this point, but for some reason the array isn't zeroing.
+		counterPageDesc = counterPageDesc + 1 ' increment the # of pages
+		useRightSide = False
+
+	End Sub
+
+	Sub FillOutBlankModule(currentLine As Integer, needNewPage As Integer, IOSheetRowCounter As Integer)
+	'    If intCurrentRackModule >= 0 And intCurrentRackModule <= intCurrentRackMax Then
+		If intCurrentRackModule >= 0 And intCurrentRackModule < intCurrentRackMax Then
+	'        While intCurrentRackModule < intCurrentRackMax
+			While intCurrentRackModule < intCurrentRackMax - 1
+				'got spares at the end
+				If useRightSide = False Then
+					useRightSide = True
+				Else
+					needNewPage = 1
+				End If
+				FillInModule intLastRow, currentLine, pageName, intIOLookup1756N2Row, needNewPage ' intIOLookup1756N2Row is the 1756-N2 module
+				intCurrentRackModule = intCurrentRackModule + 1
+				Sheets(strOutputTabName).Cells(currentLine - 2, 18).Value = intCurrentRackModule ' Slot #
+				Sheets(strOutputTabName).Cells(currentLine - 2, 16).Value = strRackNumber ' Rack #
+			Wend
+		End If
+		If intCurrentRackMax > 0 Then ' ControlLogix system, so have to take into account blank covers
+			 intCurrentRackCount = intCurrentRackCount + 1 ' increment the rack #.
+			 If intCurrentRackCount = 2 Then
+				 intCurrentRackMax = Sheets(strInputTabName).Cells(2, 6).Value
+			 ElseIf intCurrentRackCount = 3 Then
+				 intCurrentRackMax = Sheets(strInputTabName).Cells(3, 6).Value
+			 Else
+				 Sheets("Check List").Cells(intCheckListCounter, 2).Value = "Error in the # of ControlLogix Racks in the IO File"
+				 intCheckListCounter = intCheckListCounter + 1
+				 MsgBox "Error in the # of ControlLogix Racks in the IO File"
+			 End If
+			 intCurrentRackModule = Cells(IOSheetRowCounter, 5)
+		 End If
+
+	End Sub
+
+	Sub limitOutput(currentLine As Integer)
+	Dim strIOModuleOnly As String
+	Dim strIOPointsOnly As String
+	Dim intLimitRowCount As Integer
+
+	strIOModulesOnly = Sheets("Entry").Cells(intEntryIOModulesOnlyRow, 4).Value
+	strIOPointsOnly = Sheets("Entry").Cells(intEntryIOPointsOnlyRow, 4).Value
+
+	Sheets(strOutputTabName).Select
+
+	If (strIOModulesOnly = "NO" And strIOPointsOnly = "NO") Then
+		MsgBox "You must include IO Modules, IO Points, or Both to Run"
+	ElseIf (strIOPointsOnly = "NO") Then
+		For intLimitRowCount = 1 To currentLine
+			If Cells(intLimitRowCount, 13) = "" Then ' this means that the row is an IO module
+			Else
+				Cells(intLimitRowCount, 12) = "!"
+			End If
+		Next intLimitRowCount
+
+	ElseIf (strIOModulesOnly = "NO") Then
+		For intLimitRowCount = 1 To currentLine
+			If Cells(intLimitRowCount, 16) = "" Then ' this means that the row is an IO point
+			Else
+				Cells(intLimitRowCount, 12) = "!"
+			End If
+		 Next intLimitRowCount
+	End If
 
 End Sub
 
 Function FindLastRow(strInputTabName As String) As Integer
-Dim rng As Range
+	Dim rng As Range
 
-    ' Use all cells on the sheet
-    Set rng = Sheets(strInputTabName).Cells
+		' Use all cells on the sheet
+		Set rng = Sheets(strInputTabName).Cells
 
-    ' Find the last row
-    FindLastRow = Last(rng)
-    
+		' Find the last row
+		FindLastRow = Last(rng)
+		
 
 End Function
 
