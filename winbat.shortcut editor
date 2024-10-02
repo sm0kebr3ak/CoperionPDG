@@ -1,0 +1,38 @@
+'The script below can be used to change the file paths for shortcuts in bulk
+
+
+
+$oldPrefix = Read-Host "Enter OLD File Path (i.e. N:\Data\Macros\Schenck\0 Schenck Macros\)"
+$newPrefix = Read-Host "Enter NEW File Path (i.e. D:\EPLAN\Data\Macros\)"
+$searchPath = Read-Host "Enter Search Path (i.e. D:\EPLAN\Data\Macros\)"
+
+$dryRun = Read-Host "Run Dry Run? (Y/N)"
+
+$shell = new-object -com wscript.shell
+
+if ( $dryRun -eq 'Y' ) {
+   write-host "Executing dry run" -foregroundcolor green -backgroundcolor black
+} else {
+    Conf
+   write-host "Executing real run" -foregroundcolor red -backgroundcolor black
+}
+
+# dir $searchPath -filter *.lnk -recurse | foreach {
+#   $lnk = $shell.createShortcut( $_.fullname )
+#   $oldPath= $lnk.targetPath
+#
+#   $lnkRegex = "^" + [regex]::escape( $oldPrefix ) 
+#
+#   if ( $oldPath -match $lnkRegex ) {
+#      $newPath = $oldPath -replace $lnkRegex, $newPrefix
+#
+#      write-host "Found: " + $_.fullname -foregroundcolor yellow -backgroundcolor black
+#      write-host " Replace: " + $oldPath
+#      write-host " With:    " + $newPath
+#
+#      if ( !$dryRun ) {
+#         $lnk.targetPath = $newPath
+#         $lnk.Save()
+#     }
+#   }
+#}
