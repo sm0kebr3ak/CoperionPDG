@@ -1,3 +1,4 @@
+:: This script will ping out RDP servers to query all the users logged in at the time.  It can be run as a basic shell command.
 @echo off
 rem echo TS01 Users
 rem quser /server:uslxa-p-ts01.schenckprocess.com
