@@ -1,0 +1,20 @@
+Sub PasreValues()
+'
+' PasreValues Macro
+'
+' Keyboard Shortcut: Ctrl+Shift+V
+'
+    ' Check if there is something in the clipboard
+    If Application.CutCopyMode = False Then
+        MsgBox "No data in clipboard to paste!", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Paste values into the active cell
+    On Error Resume Next
+    ActiveCell.PasteSpecial Paste:=xlPasteValues
+    On Error GoTo 0
+    
+    ' Clear the clipboard
+    Application.CutCopyMode = False
+End Sub
